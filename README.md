@@ -1,4 +1,4 @@
-# 🚀 Express TypeScript TDD Auth Boilerplate
+# Express TypeScript TDD Auth Boilerplate
 
 Production-grade Authentication API built with **Node.js**, **TypeScript**, and **MongoDB**. Developed using **Clean Architecture** (Controller-Service-Repository) and **TDD (Test-Driven Development)** principles.
 

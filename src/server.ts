@@ -43,7 +43,6 @@ app.get('/ping', (req, res) => {
     res.send("pong");
 });
 
-// FIX: Export for Vercel and wrap listen for tests/production
 if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
     app.listen(PORT, () => {
         console.log(`Server is running on PORT:${PORT}`);

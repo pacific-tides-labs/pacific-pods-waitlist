@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PacificPods | Waitlist</title>
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@PacificPods">
+  <meta name="twitter:title" content="🐬 PacificPods Waitlist">
+  <meta name="twitter:image" content="https://pacificpods.xyz/static/logo.jpeg">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/jpeg" href="./static/logo.jpeg">
+</head>
+<body>
+  <% if(valid){ %>
+    <div id="scoreboard">
+      Score: <span id="score">0</span>
+    </div>
+    
+      <div id="ocean-bg"></div>
+
+     <div class="container" id="main-container">
+    <header>
+      <h1>🐬 PacificPods</h1>
+      <p>Dolphins Coming to Pacifica</p>
+    </header>
+
+    <div class="card" id="step-5">
+      <h2>🎉 You're in the Pod! 🎉</h2>
+      <p class="subtitle">Keep your sunglasses ready. <br> We'll notify you when the wave hits.</p>
+
+      <div id="tab-pass" class="tab-content">
+        <div class="pass-details">
+          <p><strong>Email:</strong> <br><span id="disp-email"><%= email%></span></p>
+          <p><strong>Wallet:</strong> <br><span id="disp-wallet"><%= walletAddress%></span></p>
+          <p>
+            <strong>Referral:</strong> <br>
+            <span style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+              <span id="disp-referral"><%= referral%></span>
+              <button id="copy-btn" class="copy-btn" onclick="copyReferral()">📋 Copy</button>
+            </span>
+          </p>
+          <p><strong>Tweet:</strong> <br><span id="disp-tweet"><%= xUsername%></span></p>
+          <p><strong>Referral Score:</strong> <br><span id="disp-score" style="color: #ff9f1c; font-weight: 700; font-size: 1.4rem;"><%= score%></span></p>
+        </div>
+        <button class="social-share-btn" onclick="shareToX()">🐦 Share to X</button>
+      </div>
+    </div>
+  </div>
+
+
+
+  <% } else { %>
+  <div id="scoreboard">
+    Score: <span id="score">0</span>
+  </div>
+
+  <div id="ocean-bg"></div>
+
+  <div class="container" id="main-container">
+    <header>
+      <h1>🐬 PacificPods</h1>
+      <p>Dolphins Coming to Pacifica</p>
+    </header>
+
+    <div id="flow-register">
+      <div class="card" id="step-0">
+        <h2>Apply for a Spot.</h2>
+        <p class="subtitle">The tide is rising.</p>
+        
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span class="stat-label">Supply</span>
+            <span class="stat-value">333</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Mint Date</span>
+            <span class="stat-value">TBA</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Price</span>
+            <span class="stat-value">Free</span>
+          </div>
+        </div>
+
+        <button onclick="nextStep(0)">Enter Waitlist 🚀</button>
+      </div>
+
+      <div class="card hidden" id="step-1">
+        <h2>Level 1: Drop your anchor</h2>
+        <p class="subtitle">Where should we send your pod invite?</p>
+        <div class="input-group">
+          <input type="email" id="email" placeholder="dolphin@ocean.com">
+        </div>
+        <button onclick="nextStep(1)">Dive In! 🌊</button>
+        <button class="back-btn" onclick="prevStep(1)">Back</button>
+        <p class="error" id="error-1">Whoops! That email doesn't look quite right.</p>
+      </div>
+
+      <div class="card hidden" id="step-2">
+        <h2>Level 2: Secure the bag</h2>
+        <p class="subtitle">Drop your Web3 wallet address to qualify.</p>
+        <div class="input-group">
+          <input type="text" id="wallet" placeholder="0x... ">
+        </div>
+        <button onclick="nextStep(2)">Next Step 🏖️</button>
+        <button class="back-btn" onclick="prevStep(2)">Back</button>
+        <p class="error" id="error-2">Please enter a valid wallet address.</p>
+      </div>
+
+      <div class="card hidden" id="step-3">
+        <h2>Level 3: Who invited you?</h2>
+        <p class="subtitle">Got a referral code from a pod mate?</p>
+        <div class="input-group">
+          <input type="text" id="referral" placeholder="Referral Code (Optional)" value="<%= typeof refCode !== 'undefined' ? refCode : '' %>">
+        </div>
+        <button onclick="nextStep(3)">Next Step 🐬</button>
+        <button class="back-btn" onclick="prevStep(3)">Back</button>
+      </div>
+
+      <div class="card hidden" id="step-4">
+        <h2>Level 4: Spread the Wave</h2>
+        <p class="subtitle">Follow, like, and quote tweet our post to unlock your spot.</p>
+        
+        <a href="https://x.com/intent/follow?screen_name=PacificPod98082" target="_blank" class="social-link" id="btn-follow" onclick="markTask('follow')">1. Follow @PacificPods</a>
+        <a href="https://twitter.com/intent/like?tweet_id=YOUR_TWEET_ID" target="_blank" class="social-link" id="btn-like" onclick="markTask('like')">2. Like Tweet</a>
+        <a href="https://twitter.com/intent/repost?tweet_id=YOUR_TWEET_ID" target="_blank" class="social-link" id="btn-repost" onclick="markTask('repost')">3. Repost Tweet</a>
+        
+        <div class="input-group" style="margin-top: 20px;">
+          <input type="url" id="tweetLink" placeholder="Paste your Quote Tweet link here">
+        </div>
+        
+        <button id="submit-btn" onclick="nextStep(4)">Verify & Join Waitlist 🚀</button>
+        <button class="back-btn" onclick="prevStep(4)">Back</button>
+        <p class="error" id="error-4">Please enter a valid link and complete all social tasks.</p>
+      </div>
+    </div>
+
+    <div id="flow-login" class="hidden">
+      <div class="card">
+        <h2>Welcome Back! 🌊</h2>
+        <p class="subtitle">Enter your wallet address to check your pod status.</p>
+        <div class="input-group">
+          <input type="text" id="login-wallet" placeholder="0x... ">
+        </div>
+        <button id="login-btn" onclick="processLogin()">Access Pass 🔑</button>
+        <p class="error" id="error-login">Wallet not found. Please register first.</p>
+      </div>
+    </div>
+
+    <div class="card hidden" id="step-5">
+      <h2>🎉 You're in the Pod! 🎉</h2>
+      <p class="subtitle">Keep your sunglasses ready. <br> We'll notify you when the wave hits.</p>
+    
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-btn-video" onclick="switchTab('video')">The Vibe</button>
+        <button class="tab-btn" id="tab-btn-pass" onclick="switchTab('pass')">Your Pass</button>
+      </div>
+
+      <div id="tab-video" class="tab-content active">
+        <div class="success-icon">
+          <video width="100%" style="border-radius: 12px; border: 4px solid #003b8e;" src="./static/Whitelist_Video_Generation_Complete.mp4" loop playsinline></video>
+        </div>
+      </div>
+
+      <div id="tab-pass" class="tab-content hidden">
+        <div class="pass-details">
+          <p><strong>Email:</strong> <br><span id="disp-email"></span></p>
+          <p><strong>Wallet:</strong> <br><span id="disp-wallet"></span></p>
+          <p>
+            <strong>Referral:</strong> <br>
+            <span style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+              <span id="disp-referral"></span>
+              <button id="copy-btn" class="copy-btn" onclick="copyReferral()">📋 Copy</button>
+            </span>
+          </p>
+          <p><strong>Tweet:</strong> <br><span id="disp-tweet"></span></p>
+          <p><strong>Referral Score:</strong> <br><span id="disp-score" style="color: #ff9f1c; font-weight: 700; font-size: 1.4rem;"></span></p>
+        </div>
+        <button class="social-share-btn" onclick="shareToX()">🐦 Share to X</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-tabs" id="auth-tabs">
+    <button class="auth-tab active" id="tab-reg" onclick="switchAuth('register')">Register</button>
+    <button class="auth-tab" id="tab-log" onclick="switchAuth('login')">Login</button>
+  </div>
+
+  <% } %>
+
+  <script>
+    // const loggedInUser = <%- typeof user !== 'undefined' ? JSON.stringify(user) : 'null' %>;
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>

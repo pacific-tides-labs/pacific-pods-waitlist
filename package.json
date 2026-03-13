@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "test": "jest", 
+    "test": "jest",
     "dev": "npx ts-node-dev --respawn --transpile-only src/server.ts"
   },
   "dependencies": {
@@ -9,8 +9,11 @@
     "@types/jsonwebtoken": "^9.0.10",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
     "dotenv": "^17.3.1",
+    "ejs": "^5.0.1",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.3.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.1",

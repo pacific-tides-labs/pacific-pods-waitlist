@@ -27,7 +27,6 @@ const authLimiter = rateLimit({
 
 app.set('trust proxy', 1);
 
-// FIX: Use process.cwd() for Vercel paths
 app.set("view engine", "ejs");
 app.set("views", path.join(process.cwd(), "src", "views"));
 app.use(express.static(path.join(process.cwd(), "src", "public")));
@@ -36,7 +35,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Apply limiter to API only (avoid locking out the home page)
 app.use("/api/auth", authLimiter);
 
 app.use("/", masterRoutes);

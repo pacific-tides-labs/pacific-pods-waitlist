@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PacificPods | Waitlist</title>
+  <title>Pacific Pods | Waitlist</title>
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:site" content="@PacificPods">
-  <meta name="twitter:title" content="🐬 PacificPods Waitlist">
-  <meta name="twitter:image" content="https://pacificpods.xyz/static/logo.jpeg">
+  <meta name="twitter:site" content="@PacificPod98082">
+  <meta name="twitter:title" content="🐬 Pacific Pods Waitlist">
+  <meta name="twitter:image" content="https://pacificpod.xyz/static/logo.jpeg">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/jpeg" href="./static/logo.jpeg">
@@ -22,7 +22,7 @@
 
      <div class="container" id="main-container">
     <header>
-      <h1>🐬 PacificPods</h1>
+      <h1>🐬 Pacific Pods</h1>
       <p>Dolphins Coming to Pacifica</p>
     </header>
 
@@ -89,7 +89,7 @@
 
       <div class="card hidden" id="step-1">
         <h2>Level 1: Drop your anchor</h2>
-        <p class="subtitle">Where should we send your pod invite?</p>
+        <p class="subtitle">Anchor with your Email?</p>
         <div class="input-group">
           <input type="email" id="email" placeholder="dolphin@ocean.com">
         </div>
@@ -100,7 +100,7 @@
 
       <div class="card hidden" id="step-2">
         <h2>Level 2: Secure the bag</h2>
-        <p class="subtitle">Drop your Web3 wallet address to qualify.</p>
+        <p class="subtitle">Drop your EVM wallet address.</p>
         <div class="input-group">
           <input type="text" id="wallet" placeholder="0x... ">
         </div>
@@ -121,11 +121,11 @@
 
       <div class="card hidden" id="step-4">
         <h2>Level 4: Spread the Wave</h2>
-        <p class="subtitle">Follow, like, and quote tweet our post to unlock your spot.</p>
+        <p class="subtitle">Follow, like, and quote our post to unlock your spot.</p>
         
         <a href="https://x.com/intent/follow?screen_name=PacificPod98082" target="_blank" class="social-link" id="btn-follow" onclick="markTask('follow')">1. Follow @PacificPods</a>
-        <a href="https://twitter.com/intent/like?tweet_id=YOUR_TWEET_ID" target="_blank" class="social-link" id="btn-like" onclick="markTask('like')">2. Like Tweet</a>
-        <a href="https://twitter.com/intent/repost?tweet_id=YOUR_TWEET_ID" target="_blank" class="social-link" id="btn-repost" onclick="markTask('repost')">3. Repost Tweet</a>
+        <a href="https://x.com/intent/like?tweet_id=YOUR_TWEET_ID" target="_blank" class="social-link" id="btn-like" onclick="markTask('like')">2. Like Tweet</a>
+        <a href="https://twitter.com/intent/tweet?text=Locked%20in%20for%20%40PacificPods.%0A%0AJust%20secured%20my%20spot%20%F0%9F%8C%8A%0A%0ADon%27t%20miss%20the%20wave.%0A%0AGet%20on%20the%20waitlist%20early%3A&url=https://x.com/PacificPod98082/status/2032497139431993783" target="_blank" class="social-link" id="btn-repost" onclick="markTask('repost')">3. Quote Tweet</a>
         
         <div class="input-group" style="margin-top: 20px;">
           <input type="url" id="tweetLink" placeholder="Paste your Quote Tweet link here">
@@ -134,6 +134,8 @@
         <button id="submit-btn" onclick="nextStep(4)">Verify & Join Waitlist 🚀</button>
         <button class="back-btn" onclick="prevStep(4)">Back</button>
         <p class="error" id="error-4">Please enter a valid link and complete all social tasks.</p>
+
+        <small>Disclaimer: Failure to complete required tasks may result in disqualification from whitelist eligibility without prior notice.</small>
       </div>
     </div>
 

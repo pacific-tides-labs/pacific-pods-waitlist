@@ -316,7 +316,7 @@ function showFloatingScore(points, x, y) {
 }
 
 function copyReferral() {
-  const refText = `https://pacificpods.xyz/?referral=${document.getElementById('disp-referral').innerText}`;
+  const refText = `https://pacificpod.xyz/?referral=${document.getElementById('disp-referral').innerText}`;
   
   if (refText && refText !== 'None' && refText !== 'N/A') {
     navigator.clipboard.writeText(refText).then(() => {

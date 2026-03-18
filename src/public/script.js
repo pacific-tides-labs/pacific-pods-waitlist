@@ -334,7 +334,7 @@ function copyReferral() {
 
 function shareToX() {
   const refText = document.getElementById('disp-referral').innerText;
-  let tweetText = `Dont miss this ALPHA!🚨%0A%0ALocked in for @PacificPods98082.%0A%0AJust secured my spot 🌊%0A%0ADon't miss the wave.%0A%0AGet on the waitlist early:%0Ahttps://pacificpod.xyz/?referral=${refText}`;
+  let tweetText = `Dont miss this ALPHA!🚨%0A%0ALocked in for @PacificPod98082%0A%0AJust secured my spot 🌊%0A%0ADon't miss the wave.%0A%0AGet on the waitlist early:%0Ahttps://pacificpod.xyz/?referral=${refText}`;
 
   const siteUrl = window.location.origin; 
   const xUrl = `https://x.com/intent/tweet?text=${tweetText}&url=https://x.com/PacificPod98082/status/2034329293799538997 `;

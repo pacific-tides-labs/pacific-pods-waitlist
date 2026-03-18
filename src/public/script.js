@@ -337,7 +337,7 @@ function shareToX() {
   let tweetText = `Dont miss this ALPHA!🚨%0A%0ALocked in for @PacificPods98082.%0A%0AJust secured my spot 🌊%0A%0ADon't miss the wave.%0A%0AGet on the waitlist early:%0Ahttps://pacificpod.xyz/?referral=${refText}`;
 
   const siteUrl = window.location.origin; 
-  const xUrl = `https://x.com/intent/tweet?text=${tweetText}&url=https://x.com/PacificPod98082/status/2032497139431993783?s=20 `;
+  const xUrl = `https://x.com/intent/tweet?text=${tweetText}&url=https://x.com/PacificPod98082/status/2034329293799538997 `;
   
   window.open(xUrl, '_blank');
 }

@@ -95,7 +95,7 @@ function markTask(task) {
     taskLike = true;
     const btn = document.getElementById('btn-repost');
     btn.classList.add('success-task');
-    btn.innerText = '✅ Reposted';
+    btn.innerText = '✅ Quoted';
   }
 }
 
@@ -334,10 +334,10 @@ function copyReferral() {
 
 function shareToX() {
   const refText = document.getElementById('disp-referral').innerText;
-  let tweetText = `Locked in for @PacificPods. %0A%0AJust secured my spot 🌊%0A%0ADon't miss the wave. %0A%0A@svajpayee15 and @W1nszn are cooking. %0A%0AGet on the waitlist early:%0Ahttps://pacificpod.xyz/?referral=${refText}`;
+  let tweetText = `Dont miss this ALPHA!🚨%0A%0ALocked in for @PacificPods.%0A%0AJust secured my spot 🌊%0A%0ADon't miss the wave.%0A%0AGet on the waitlist early:%0Ahttps://pacificpod.xyz/?referral=${refText}`;
 
   const siteUrl = window.location.origin; 
-  const xUrl = `https://x.com/intent/tweet?text=${tweetText}`;
+  const xUrl = `https://x.com/intent/tweet?text=${tweetText}&url=https://x.com/PacificPod98082/status/2032497139431993783?s=20 `;
   
   window.open(xUrl, '_blank');
 }

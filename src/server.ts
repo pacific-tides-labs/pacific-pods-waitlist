@@ -16,7 +16,7 @@ if (process.env.NODE_ENV !== 'test') {
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 25,
+    max: 100,
     message: {
         success: false,
         error: "Too many requests from this IP, please try again after 15 minutes."
@@ -24,6 +24,8 @@ const authLimiter = rateLimit({
     standardHeaders: true, 
     legacyHeaders: false, 
 });
+
+app.set('trust proxy', 1);
 
 // FIX: Use process.cwd() for Vercel paths
 app.set("view engine", "ejs");

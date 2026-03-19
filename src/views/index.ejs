@@ -102,7 +102,7 @@
         <h2>Level 2: Secure the bag</h2>
         <p class="subtitle">Drop your EVM wallet address.</p>
         <div class="input-group">
-          <input type="text" id="wallet" placeholder="0x... ">
+          <input type="text" id="wallet" placeholder="0x... " onpaste="setTimeout(() => this.value = this.value.trim(), 0)" spellcheck="false" autocomplete="off">
         </div>
         <button onclick="nextStep(2)">Next Step 🏖️</button>
         <button class="back-btn" onclick="prevStep(2)">Back</button>

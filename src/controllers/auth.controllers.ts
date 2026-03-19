@@ -7,7 +7,7 @@ import "dotenv/config";
 export class AuthController {
   static async register(req: Request, res: Response): Promise<void> {
     try {
-      if(process.env.STATUS == "false"){
+      if(process.env.STATUS == "down"){
         console.log("Bots Attacking...")
         res.status(410).json({error:"Gone"});
         return;

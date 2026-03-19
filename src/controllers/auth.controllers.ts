@@ -8,6 +8,7 @@ export class AuthController {
   static async register(req: Request, res: Response): Promise<void> {
     try {
       if(process.env.STATUS == "false"){
+        console.log("Bots Attacking...")
         res.status(410).json({error:"Gone"});
         return;
       }
@@ -43,6 +44,7 @@ export class AuthController {
 
   static async login(req: Request, res: Response): Promise<void> {
     try {
+      console.log("Logging in.")
       const result = userVLSchema.safeParse(req.body);
       if (result.success) {
         const user: Omit<IUser, "email" | "xUsername" | "score"> = result.data;

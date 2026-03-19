@@ -82,6 +82,39 @@
       </div>
     </div>
 
+    <div class="card hidden" id="step-5">
+      <h2>🎉 You're in the Pod! 🎉</h2>
+      <p class="subtitle">Keep your sunglasses ready. <br> We'll notify you when the wave hits.</p>
+    
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-btn-video" onclick="switchTab('video')">The Vibe</button>
+        <button class="tab-btn" id="tab-btn-pass" onclick="switchTab('pass')">Your Pass</button>
+      </div>
+
+      <div id="tab-video" class="tab-content active">
+        <div class="success-icon">
+          <video width="100%" style="border-radius: 12px; border: 4px solid #003b8e;" src="./static/Whitelist_Video_Generation_Complete.mp4" loop playsinline></video>
+        </div>
+      </div>
+
+      <div id="tab-pass" class="tab-content hidden">
+        <div class="pass-details">
+          <p><strong>Email:</strong> <br><span id="disp-email"></span></p>
+          <p><strong>Wallet:</strong> <br><span id="disp-wallet"></span></p>
+          <p>
+            <strong>Referral:</strong> <br>
+            <span style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+              <span id="disp-referral"></span>
+              <button id="copy-btn" class="copy-btn" onclick="copyReferral()">📋 Copy</button>
+            </span>
+          </p>
+          <p><strong>Tweet:</strong> <br><span id="disp-tweet"></span></p>
+          <p><strong>Referral Score:</strong> <br><span id="disp-score" style="color: #ff9f1c; font-weight: 700; font-size: 1.4rem;"></span></p>
+        </div>
+        <button class="social-share-btn" onclick="shareToX()">🐦 Share to X</button>
+      </div>
+    </div>
+
     <div class="auth-tabs" id="auth-tabs">
         <button class="auth-tab active" id="tab-reg" onclick="switchAuth('register')">Register</button>
         <button class="auth-tab" id="tab-log" onclick="switchAuth('login')">Login</button>

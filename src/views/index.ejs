@@ -144,7 +144,7 @@
         <h2>Welcome Back! 🌊</h2>
         <p class="subtitle">Enter your wallet address to check your pod status.</p>
         <div class="input-group">
-          <input type="text" id="login-wallet" placeholder="0x... ">
+          <input type="text" id="login-wallet" placeholder="0x... " onpaste="setTimeout(() => this.value = this.value.trim(), 0)" spellcheck="false" autocomplete="off">
         </div>
         <button id="login-btn" onclick="processLogin()">Access Pass 🔑</button>
         <p class="error" id="error-login">Wallet not found. Please register first.</p>

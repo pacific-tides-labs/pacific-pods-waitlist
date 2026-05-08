@@ -8,7 +8,7 @@ import { connectDB } from "./config/db.config";
 import path from "path";
 import rateLimit from "express-rate-limit";
 
-const allowedOrigins = ['http://localhost:4000', 'http://localhost:3000', 'https://pacificpod.xyz/'];
+const allowedOrigins = ['http://localhost:4000', 'http://localhost:3000', 'https://pacificpod.xyz', 'https://www.pacificpod.xyz'];
 
 export const app = express();
 const PORT: number = Number(process.env.PORT) || 3000;

@@ -1,0 +1,21 @@
+{
+  "name": "pacificpods-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
+  },
+  "dependencies": {
+    "@reown/appkit": "^1.8.19",
+    "@reown/appkit-adapter-wagmi": "^1.8.19",
+    "ogl": "^1.0.11",
+    "viem": "^2.48.1",
+    "wagmi": "^3.6.3"
+  }
+}

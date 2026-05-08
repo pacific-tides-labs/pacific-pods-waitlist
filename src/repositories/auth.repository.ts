@@ -3,7 +3,6 @@ import { UserModel } from "../models/user.schema";
 import { IUser } from "../types/user";
 
 export class UserRepository {
-  // Fixed: findOne returns a single document, not an array.
   static async find(
     walletAddress: string,
     email: string,

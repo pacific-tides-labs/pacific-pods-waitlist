@@ -9,7 +9,7 @@ export const connectDB = async ()=>{
        });
     }
     catch(err){
-        console.error(err);
+        console.error("Connection Error",err);
         process.exit(1);
     }
 }

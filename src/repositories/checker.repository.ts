@@ -7,7 +7,14 @@ export class CheckerRepository {
     walletAddress: string,
   ): Promise<HydratedDocument<IAllocation> | null> {
     try {
-      const allocationData: HydratedDocument<IAllocation> | null = await AllocationModel.findOne({walletAddress});
+      function escapeRegex(text: string) {
+        return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      }
+
+      const safeWalletAddress = escapeRegex(walletAddress);
+      const allocationData: HydratedDocument<IAllocation> | null = await AllocationModel.findOne({
+        walletAddress: new RegExp(`^${safeWalletAddress}$`, 'i')
+      });
       console.log(allocationData);
       return allocationData;
     } catch (err) {

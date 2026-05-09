@@ -17,16 +17,16 @@ if (process.env.NODE_ENV !== 'test') {
     connectDB();
 }
 
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 30,
-    message: {
-        success: false,
-        error: "Too many requests from this IP, please try again after 15 minutes."
-    },
-    standardHeaders: true, 
-    legacyHeaders: false, 
-});
+// const authLimiter = rateLimit({
+//     windowMs: 15 * 60 * 1000,
+//     max: 30,
+//     message: {
+//         success: false,
+//         error: "Too many requests from this IP, please try again after 15 minutes."
+//     },
+//     standardHeaders: true, 
+//     legacyHeaders: false, 
+// });
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin: any, callback: any) => {
@@ -57,7 +57,7 @@ app.use(express.urlencoded({ extended: true }));
 // app.use(helmet());
 app.use(cookieParser())
 
-app.use("/", authLimiter);
+// app.use("/", authLimiter);
 
 app.use("/", masterRoutes);
 

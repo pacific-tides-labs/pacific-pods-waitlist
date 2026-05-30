@@ -49,6 +49,8 @@ const frontendDistPath = path.join(__dirname, "../frontend/dist");
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "../src/views"));
 
+// Added this globally so Vite's built-in /assets/... files can be fetched by both apps
+app.use(express.static(frontendDistPath)); 
 app.use("/checker", express.static(frontendDistPath));
 app.use(express.static(path.join(__dirname, "../src/public")));
 app.use(cors(corsOptions));
@@ -61,9 +63,27 @@ app.use(cookieParser())
 
 app.use("/", masterRoutes);
 
-app.get("/checker/*any", (req, res) => {
-    res.sendFile(path.join(frontendDistPath, "index.html"));
+
+// ==========================================
+// VITE FRONTEND ROUTES
+// ==========================================
+
+// Stake Route
+app.get('/stake', (req, res) => {
+    res.sendFile(path.join(frontendDistPath, 'stake/index.html'));
 });
+
+// Checker Route (Base)
+app.get('/checker', (req, res) => {
+    res.sendFile(path.join(frontendDistPath, 'checker/index.html'));
+});
+
+// Checker Route (Catch-all for internal Vite/React/Vue routing)
+app.get("/checker/*any", (req, res) => {
+    res.sendFile(path.join(frontendDistPath, "checker/index.html"));
+});
+
+// ==========================================
 
 app.get('/ping', (req, res)=>{
     res.send("pong")
@@ -72,6 +92,3 @@ app.get('/ping', (req, res)=>{
 app.listen(PORT, ()=>{
     console.log(`Server is running on PORT:${PORT}`);
 })
-
-
-

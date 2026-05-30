@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PacificPods | Staking</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/stake/style.css"> 
+</head>
+<body>
+  <div class="marquee-container">
+    <div class="marquee-content">
+      <span>🚀 PODS STAKING IS NOW LIVE 🌊 LOCK YOUR FLEET TO MULTIPLY YIELD 🚀 EARN $TIDES DAILY 🌊 NO UNSTAKING PENALTIES ON SOFT STAKE 🚀</span>
+      <span>🚀 PODS STAKING IS NOW LIVE 🌊 LOCK YOUR FLEET TO MULTIPLY YIELD 🚀 EARN $TIDES DAILY 🌊 NO UNSTAKING PENALTIES ON SOFT STAKE 🚀</span>
+    </div>
+  </div>
+
+  <div id="ocean-bg"></div>
+  <div class="bubble" style="left: 10%; width: 40px; height: 40px; animation: floatUp 6s infinite linear;"></div>
+  <div class="bubble" style="right: 20%; width: 60px; height: 60px; animation: floatUp 10s infinite linear 3s;"></div>
+
+  <div id="floating-connect-hub">
+    <button id="web3-connect-btn" class="pro-wallet-btn">Connect Wallet</button>
+  </div>
+
+  <main class="dapp-container container">
+    <header style="margin-top: 40px;">
+      <h1>🐬 Staking Depths</h1>
+      <p>Lock your Pod. Earn $TIDES.</p>
+    </header>
+
+    <div id="flow-login" class="card pulse-glow" style="margin-top: 40px;">
+      <h2>Wallet Required 🌊</h2>
+      <p class="subtitle">Connect your Web3 wallet using the button in the top right to view your fleet.</p>
+      <button id="hero-connect-btn" class="action-btn" style="width: auto; padding: 15px 40px; font-size: 1.3rem;">Connect to Web3 🚀</button>
+    </div>
+
+    <div id="dashboard-view" class="hidden">
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="stat-label">Staked Fleet</span>
+          <span class="stat-value" id="val-staked">0</span>
+        </div>
+        <div class="stat-box" style="border-color: #ff9f1c; box-shadow: 0 4px 0px #cc7a00; background: #fffdfa;">
+          <span class="stat-label" style="color: #cc7a00;">Pending $TIDES</span>
+          <span class="stat-value pulse-text" id="val-tides">0.00</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Global Multiplier</span>
+          <span class="stat-value" id="val-mult">1.0x</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 30px;">
+        <div class="fleet-header">
+          <h2 style="margin: 0; border: none;">Your Fleet</h2>
+        </div>
+        <div class="nft-grid" id="nft-container"></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="stake-modal" class="modal-overlay hidden">
+    <div class="card modal-content">
+      <h2 id="modal-title">Stake POD</h2>
+      <p class="subtitle">Select your staking strategy.</p>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-soft" onclick="selectStakeType('soft')">Soft Stake</button>
+        <button class="tab-btn" id="tab-locked" onclick="selectStakeType('locked')">Locked Stake</button>
+      </div>
+
+      <div class="pass-details" id="strategy-info" style="text-align: center; margin-bottom: 20px; padding: 15px;"></div>
+
+      <div id="lock-options" class="lock-grid">
+        <div class="lock-tile" onclick="selectLockDuration(7, this)">
+          <span class="lock-days">7 Days</span>
+          <span class="lock-boost">1.2x Boost</span>
+        </div>
+        <div class="lock-tile active-tile" onclick="selectLockDuration(30, this)">
+          <span class="lock-days">30 Days</span>
+          <span class="lock-boost">1.5x Boost</span>
+        </div>
+        <div class="lock-tile" onclick="selectLockDuration(90, this)">
+          <span class="lock-days">90 Days</span>
+          <span class="lock-boost">2.0x Boost</span>
+        </div>
+        <div class="lock-tile" onclick="selectLockDuration(180, this)">
+          <span class="lock-days">6 Months</span>
+          <span class="lock-boost">3.0x Boost</span>
+        </div>
+      </div>
+
+      <button id="confirm-stake-btn" class="success-task action-btn" style="width: 100%; margin-bottom: 10px;">Confirm Stake 🌊</button>
+      <button class="back-btn action-btn" style="width: 100%;" onclick="closeModal('stake-modal')">Cancel</button>
+    </div>
+  </div>
+
+  <div id="tx-loader" class="modal-overlay hidden" style="z-index: 9999;">
+    <div class="card" style="text-align: center; width: 300px; padding: 30px;">
+      <h2 id="tx-loader-title" style="font-size: 1.8rem;">Processing</h2>
+      <p id="tx-loader-msg" class="subtitle">Please confirm in wallet...</p>
+      <div class="chunky-spinner"></div>
+    </div>
+  </div>
+  <div id="toast-hub"></div>
+
+  <script type="module" src="/stake/script.js"></script>
+</body>
+</html>

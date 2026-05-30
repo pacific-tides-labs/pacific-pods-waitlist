@@ -12,10 +12,10 @@
     "vite": "^6.3.5"
   },
   "dependencies": {
-    "@reown/appkit": "^1.8.19",
-    "@reown/appkit-adapter-wagmi": "^1.8.19",
+    "@reown/appkit": "^1.8.20",
+    "@reown/appkit-adapter-wagmi": "^1.8.20",
+    "@wagmi/core": "^3.5.0",
     "ogl": "^1.0.11",
-    "viem": "^2.48.1",
-    "wagmi": "^3.6.3"
+    "viem": "^2.51.3"
   }
 }

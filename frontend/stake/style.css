@@ -240,3 +240,8 @@ h2 { color: #003b8e; font-size: 2.2rem; margin: 0 0 10px 0; }
   .card { padding: 30px 20px; border-width: 4px; box-shadow: 0 8px 0px #003b8e; }
   #toast-hub { bottom: 15px; right: 15px; left: 15px; align-items: center;}
 }
+
+/* Lazy Loading Skeleton Animations */
+.skeleton-bg { animation: pulseLoad 1.5s infinite; background-color: #001d4a !important; }
+.skeleton-text { animation: pulseLoad 1.5s infinite; background-color: #003b8e !important; color: transparent !important; border-radius: 4px; }
+@keyframes pulseLoad { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }

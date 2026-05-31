@@ -1,7 +1,7 @@
 import { createAppKit } from '@reown/appkit'
 import { mainnet } from '@reown/appkit/networks'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
-import { writeContract, readContract, waitForTransactionReceipt, signMessage } from '@wagmi/core'
+import { writeContract, readContract, readContracts, waitForTransactionReceipt, signMessage } from '@wagmi/core'
 
 import vaultArtifact from './abis/PodStakingVault.json'; 
 import nftArtifact from './abis/PacificPods.json'; 
@@ -63,8 +63,9 @@ let isFetchingFleet = false;
 // ==========================================
 // 3. UI UTILITIES (TOASTS & LOADERS)
 // ==========================================
-function showToast(message, type = "info") {
+window.showToast = (message, type = "info") => {
   const hub = document.getElementById('toast-hub');
+  if(!hub) return;
   const toast = document.createElement('div');
   toast.className = `chunky-toast ${type}`;
   let icon = "ℹ️";
@@ -75,14 +76,14 @@ function showToast(message, type = "info") {
   setTimeout(() => { toast.style.opacity = "0"; setTimeout(() => toast.remove(), 300); }, 4000);
 }
 
-function showTxLoader(title, msg) {
-  document.getElementById('tx-loader-title').innerText = title;
-  document.getElementById('tx-loader-msg').innerText = msg;
-  document.getElementById('tx-loader').classList.remove('hidden');
+window.showTxLoader = (title, msg) => {
+  if(document.getElementById('tx-loader-title')) document.getElementById('tx-loader-title').innerText = title;
+  if(document.getElementById('tx-loader-msg')) document.getElementById('tx-loader-msg').innerText = msg;
+  if(document.getElementById('tx-loader')) document.getElementById('tx-loader').classList.remove('hidden');
 }
 
-function hideTxLoader() {
-  document.getElementById('tx-loader').classList.add('hidden');
+window.hideTxLoader = () => {
+  if(document.getElementById('tx-loader')) document.getElementById('tx-loader').classList.add('hidden');
 }
 
 // ==========================================
@@ -125,11 +126,12 @@ function resolveIPFS(url) {
   return cleanUrl;
 }
 
+// Optimized IPFS fetcher
 async function fetchNFTMetadata(tokenId) {
   try {
     let uri = await readContract(config, { address: NFT_CONTRACT, abi: nftAbi, functionName: 'tokenURI', args: [BigInt(tokenId)] });
     uri = resolveIPFS(uri);
-    const response = await fetch(uri, { signal: AbortSignal.timeout(3000) });
+    const response = await fetch(uri, { signal: AbortSignal.timeout(5000) });
     const data = await response.json();
     return {
       image: resolveIPFS(data.image || data.image_url),
@@ -140,57 +142,109 @@ async function fetchNFTMetadata(tokenId) {
   }
 }
 
+// 🔥 INSTANT MULTICALL + LAZY LOADING 🔥
 async function fetchRealFleet() {
   if (!userAddress || !nftContainer || isFetchingFleet) return;
   isFetchingFleet = true;
 
-  // Professional Chunky Loader UI
   nftContainer.innerHTML = `
-    <div style="text-align:center; padding: 60px 0;">
+    <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; width: 100%; text-align: center;">
       <div class="chunky-spinner"></div>
-      <h2 style="margin-top: 20px;">Scanning the Depths...</h2>
-      <p class="subtitle">Locating your fleet on Ethereum Mainnet</p>
+      <h2 style="margin-top: 20px; color: white;">Scanning the Depths...</h2>
+      <p class="subtitle" style="color: #aaa;">Locating your fleet via High-Speed Multicall</p>
     </div>`;
   
-  const tempFleet = [];
   const maxTokenIdToCheck = 333; 
-  // High speed batching (50 at a time)
-  const batchSize = 50; 
+  const vaultCalls = [];
+  const ownerCalls = [];
 
-  try {
-    for (let i = 0; i <= maxTokenIdToCheck; i += batchSize) {
-      const currentBatchEnd = Math.min(i + batchSize - 1, maxTokenIdToCheck);
-      const batchPromises = [];
-
-      for (let tokenId = i; tokenId <= currentBatchEnd; tokenId++) {
-        batchPromises.push((async (id) => {
-          try {
-            const ledger = await readContract(config, { address: VAULT_CONTRACT, abi: vaultAbi, functionName: 'stakingLedger', args: [BigInt(id)] });
-            if (ledger && ledger[0].toLowerCase() === userAddress.toLowerCase()) {
-              const meta = await fetchNFTMetadata(id);
-              return { id, state: "locked", unlockTimestamp: Number(ledger[1]) * 1000, image: meta.image, name: meta.name };
-            }
-
-            const owner = await readContract(config, { address: NFT_CONTRACT, abi: nftAbi, functionName: 'ownerOf', args: [BigInt(id)] });
-            if (owner && owner.toLowerCase() === userAddress.toLowerCase()) {
-              const meta = await fetchNFTMetadata(id);
-              return { id, state: "unstaked", unlockTimestamp: null, image: meta.image, name: meta.name };
-            }
-          } catch (err) {}
-          return null;
-        })(tokenId));
-      }
-
-      const batchResults = await Promise.all(batchPromises);
-      batchResults.forEach(res => { if (res) tempFleet.push(res); });
-    }
-  } catch (globalErr) {
-    console.error("Fetch Error:", globalErr);
+  for (let i = 0; i <= maxTokenIdToCheck; i++) {
+    vaultCalls.push({ address: VAULT_CONTRACT, abi: vaultAbi, functionName: 'stakingLedger', args: [BigInt(i)] });
+    ownerCalls.push({ address: NFT_CONTRACT, abi: nftAbi, functionName: 'ownerOf', args: [BigInt(i)] });
   }
 
-  realFleet = tempFleet;
-  isFetchingFleet = false;
-  renderFleet();
+  const ownedOrStakedIds = [];
+  const chunkSize = 150; // Massively chunked for speed
+
+  try {
+    for (let i = 0; i <= maxTokenIdToCheck; i += chunkSize) {
+      const vChunk = vaultCalls.slice(i, i + chunkSize);
+      const oChunk = ownerCalls.slice(i, i + chunkSize);
+
+      const [vRes, oRes] = await Promise.all([
+        readContracts(config, { contracts: vChunk }),
+        readContracts(config, { contracts: oChunk })
+      ]);
+
+      for (let j = 0; j < vChunk.length; j++) {
+        const id = i + j;
+        const v = vRes[j];
+        const o = oRes[j];
+
+        if (v.status === 'success' && v.result) {
+          const staker = v.result[0];
+          const unlockTimestamp = Number(v.result[1]);
+          if (staker && staker.toLowerCase() === userAddress.toLowerCase()) {
+            ownedOrStakedIds.push({ id, state: "locked", unlockTimestamp: unlockTimestamp * 1000 });
+            continue;
+          }
+        }
+
+        if (o.status === 'success' && o.result) {
+          const owner = o.result;
+          if (owner && owner.toLowerCase() === userAddress.toLowerCase()) {
+            ownedOrStakedIds.push({ id, state: "unstaked", unlockTimestamp: null });
+          }
+        }
+      }
+    }
+
+    // ⚡ INSTANT UI RENDER (Bypass IPFS entirely for initial load)
+    realFleet = ownedOrStakedIds.map(item => ({
+      ...item,
+      image: '', 
+      name: `Loading...`,
+      isLoadingMeta: true
+    }));
+
+    isFetchingFleet = false;
+    renderFleet(); // Show UI immediately
+
+    // Hydrate metadata in background
+    hydrateMetadata();
+
+  } catch (globalErr) {
+    console.error("Multicall Fetch Error:", globalErr);
+    isFetchingFleet = false;
+  }
+}
+
+// Background IPFS Hydration Engine
+async function hydrateMetadata() {
+  realFleet.forEach(async (nft) => {
+    if (!nft.isLoadingMeta) return;
+    try {
+      const meta = await fetchNFTMetadata(nft.id);
+      nft.image = meta.image;
+      nft.name = meta.name;
+      nft.isLoadingMeta = false;
+
+      // Update DOM directly to prevent flashing/re-renders while user interacts
+      const imgEl = document.getElementById(`img-${nft.id}`);
+      const nameEl = document.getElementById(`name-${nft.id}`);
+      
+      if (imgEl) {
+        imgEl.style.backgroundImage = `url('${nft.image}')`;
+        imgEl.classList.remove('skeleton-bg');
+      }
+      if (nameEl) {
+        nameEl.innerText = nft.name;
+        nameEl.classList.remove('skeleton-text');
+      }
+    } catch(e) {
+      console.warn(`Failed loading meta for ID ${nft.id}`);
+    }
+  });
 }
 
 function renderFleet() {
@@ -199,7 +253,7 @@ function renderFleet() {
   let totalStaked = 0;
 
   if (realFleet.length === 0) {
-    nftContainer.innerHTML = '<div style="text-align:center; padding: 40px;"><h2 style="color:#aaa;">No PacificPods Found</h2></div>';
+    nftContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; padding: 40px;"><h2 style="color:#aaa;">No PacificPods Found</h2></div>';
     if (document.getElementById('val-staked')) document.getElementById('val-staked').innerText = "0";
     return;
   }
@@ -221,12 +275,12 @@ function renderFleet() {
         </div>`;
     }
 
-    // Fully Reverted to Original Chunky Card HTML Design
+    // Notice the specific IDs added to the image and name span for direct background hydration
     card.innerHTML = `
-      <div class="nft-image" style="background-image: url('${nft.image}'); background-size: cover; background-position: center;">
+      <div id="img-${nft.id}" class="nft-image ${nft.isLoadingMeta ? 'skeleton-bg' : ''}" style="background-image: url('${nft.image || ''}'); background-size: cover; background-position: center;">
         <span class="nft-rarity-badge">#${nft.id}</span>
       </div>
-      <span class="nft-name">${nft.name}</span>
+      <span id="name-${nft.id}" class="nft-name ${nft.isLoadingMeta ? 'skeleton-text' : ''}">${nft.name}</span>
       <span class="nft-yield">${nft.state === 'locked' ? 'Multiplying Yield 🚀' : 'Ready to Stake'}</span>
       ${actionHTML}
     `;
@@ -269,8 +323,11 @@ window.openStakeModal = (id) => {
   }
   
   selectStakeType('soft');
+  
   const thirtyDayTile = document.querySelector('.lock-tile[onclick*="(30"]');
-  if (thirtyDayTile) selectLockDuration(30, thirtyDayTile); 
+  if (thirtyDayTile) {
+    selectLockDuration(30, thirtyDayTile); 
+  }
 
   if (document.getElementById('stake-modal')) document.getElementById('stake-modal').classList.remove('hidden');
 }
@@ -295,7 +352,7 @@ window.selectStakeType = (type) => {
 }
 
 window.selectLockDuration = (days, element) => {
-  if (!durationToEnum[String(days)] && String(days) !== "30") return;
+  if (durationToEnum[String(days)] === undefined) return;
   selectedLockDuration = String(days);
   document.querySelectorAll('.lock-tile').forEach(tile => tile.classList.remove('active-tile'));
   if (element) element.classList.add('active-tile');
@@ -304,60 +361,70 @@ window.selectLockDuration = (days, element) => {
 if (confirmStakeBtn) {
   confirmStakeBtn.addEventListener('click', async () => {
     const isSoft = document.getElementById('tab-soft').classList.contains('active');
-    closeModal('stake-modal');
+    window.closeModal('stake-modal');
 
     try {
       if (isSoft) {
-        showTxLoader("Soft Staking", "Please sign the message in your wallet.");
+        window.showTxLoader("Soft Staking", "Please sign the message in your wallet.");
         await signMessage(config, { message: `I am Soft Staking PacificPod #${currentPodToStake} to earn off-chain $TIDES.` });
-        hideTxLoader();
-        showToast(`Soft Staking active for Pod #${currentPodToStake}!`, "success");
+        window.hideTxLoader();
+        window.showToast(`Soft Staking active for Pod #${currentPodToStake}!`, "success");
       } else {
-        const approvedAddress = await readContract(config, { address: NFT_CONTRACT, abi: nftAbi, functionName: 'getApproved', args: [BigInt(currentPodToStake)] });
+        let approvedAddress = "0x0000000000000000000000000000000000000000";
+        try {
+           approvedAddress = await readContract(config, { address: NFT_CONTRACT, abi: nftAbi, functionName: 'getApproved', args: [BigInt(currentPodToStake)] });
+        } catch (e) {
+           console.warn("Approval not explicitly set, requesting standard approval...");
+        }
 
         if (approvedAddress.toLowerCase() !== VAULT_CONTRACT.toLowerCase()) {
-          showTxLoader("Approval Required", "Approve the Staking Vault in your wallet.");
+          window.showTxLoader("Approval Required", "Approve the Staking Vault in your wallet.");
           const txHashApprove = await writeContract(config, { address: NFT_CONTRACT, abi: nftAbi, functionName: 'approve', args: [VAULT_CONTRACT, BigInt(currentPodToStake)] });
           await waitForTransactionReceipt(config, { hash: txHashApprove });
         }
 
-        showTxLoader("Locking Asset", "Confirm the staking transaction.");
+        window.showTxLoader("Locking Asset", "Confirm the staking transaction.");
         const enumIndex = durationToEnum[selectedLockDuration]; 
         const txHashLock = await writeContract(config, { address: VAULT_CONTRACT, abi: vaultAbi, functionName: 'lock', args: [BigInt(currentPodToStake), enumIndex] });
         
         document.getElementById('tx-loader-msg').innerText = "Waiting for Ethereum Network Confirmation...";
         await waitForTransactionReceipt(config, { hash: txHashLock });
         
-        hideTxLoader();
-        showToast(`Pod #${currentPodToStake} Successfully Locked!`, "success");
+        window.hideTxLoader();
+        window.showToast(`Pod #${currentPodToStake} Successfully Locked!`, "success");
       }
       
       realFleet = [];
       fetchRealFleet(); 
 
     } catch (error) {
-      hideTxLoader();
-      showToast("Transaction Failed or Rejected by user.", "error");
+      window.hideTxLoader();
+      window.showToast("Transaction Failed or Rejected by user.", "error");
+    } finally {
+      if(document.getElementById('confirm-stake-btn')) {
+        document.getElementById('confirm-stake-btn').innerHTML = "Confirm Stake 🌊";
+        document.getElementById('confirm-stake-btn').disabled = false;
+      }
     }
   });
 }
 
 window.unstakeLocked = async (id) => {
   try {
-    showTxLoader("Unstaking Pod", "Please confirm the withdrawal transaction.");
+    window.showTxLoader("Unstaking Pod", "Please confirm the withdrawal transaction.");
     const txHashUnlock = await writeContract(config, { address: VAULT_CONTRACT, abi: vaultAbi, functionName: 'unlock', args: [BigInt(id)] });
     
     document.getElementById('tx-loader-msg').innerText = "Waiting for Ethereum Network Confirmation...";
     await waitForTransactionReceipt(config, { hash: txHashUnlock });
     
-    hideTxLoader();
-    showToast(`Pod #${id} Returned to Wallet!`, "success");
+    window.hideTxLoader();
+    window.showToast(`Pod #${id} Returned to Wallet!`, "success");
     
     realFleet = [];
     fetchRealFleet(); 
   } catch (error) {
-    hideTxLoader();
-    showToast("Withdrawal Failed. Ensure lock time is finished.", "error");
+    window.hideTxLoader();
+    window.showToast("Withdrawal Failed. Ensure lock time is finished.", "error");
   }
 }
 

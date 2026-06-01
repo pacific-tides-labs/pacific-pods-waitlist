@@ -374,6 +374,9 @@ const nftAbi = nftArtifact.abi || nftArtifact;
 
 const durationToEnum = { "7": 0, "30": 1, "90": 2, "180": 3 };
 
+// 🔥 Global cache to store blockchain metadata traits for precise tokenomics
+window.podMetadataCache = {};
+
 // ==========================================
 // 1. REOWN APPKIT INIT
 // ==========================================
@@ -500,11 +503,15 @@ window.hideTxLoader = () => {
   if(document.getElementById('tx-loader')) document.getElementById('tx-loader').classList.add('hidden');
 }
 
+// 🔥 Correctly maps the parsed metadata traits to the exact base points requested
 function getPodStats(tokenId) {
-  const id = Number(tokenId);
-  if(id <= 5) return { rarity: '1/1', base: 60.0 };
-  if(id <= 50) return { rarity: 'Legendary', base: 50.0 };
-  if(id <= 150) return { rarity: 'Rare', base: 22.5 };
+  const meta = window.podMetadataCache[tokenId];
+  const rarity = meta ? meta.rarity : 'Common';
+  const r = String(rarity).toLowerCase();
+  
+  if(r.includes('legendary')) return { rarity: 'Legendary', base: 60.0 };
+  if(r.includes('1/1') || r.includes('1 of 1')) return { rarity: '1/1', base: 50.0 };
+  if(r.includes('rare')) return { rarity: 'Rare', base: 22.5 };
   return { rarity: 'Common', base: 10.0 };
 }
 
@@ -525,7 +532,7 @@ function setupHelpModal() {
       <span class="help-close" onclick="document.getElementById('help-modal-overlay').classList.add('hidden')">&times;</span>
       <h2 style="margin-top:0; color:#111; font-size:1.4rem;">$POD Tokenomics</h2>
       <div style="font-size:0.95rem; line-height:1.6; color:#444; margin-top:20px;">
-        <p><strong style="color:#003b8e;">💎 Base Yields:</strong><br>Common (10), Rare (22.5), Legendary (50), 1/1 (60).</p>
+        <p><strong style="color:#003b8e;">💎 Base Yields:</strong><br>Common (10), Rare (22.5), 1/1 (50), Legendary (60).</p>
         <p><strong style="color:#e63946;">⚡ Soft Staking:</strong><br>Earn 10% of Base Yield. No locks, keep it in your wallet.</p>
         <p><strong style="color:#cc7a00;">🔒 Locked Staking:</strong><br>Earn 100% of Base Yield + Multipliers:<br>7 Days (1.0x), 30 Days (1.5x), 90 Days (2.0x), 180 Days (2.5x).</p>
       </div>
@@ -575,18 +582,32 @@ function resolveIPFS(url) {
   return cleanUrl;
 }
 
+// 🔥 Successfully extracts the exact 'Rarity' trait from your NFT's attributes JSON array
 async function fetchNFTMetadata(tokenId) {
+  if (window.podMetadataCache[tokenId]) return window.podMetadataCache[tokenId];
+
   try {
     let uri = await readContract(config, { address: NFT_CONTRACT, abi: nftAbi, functionName: 'tokenURI', args: [BigInt(tokenId)] });
     uri = resolveIPFS(uri);
     const response = await fetch(uri, { signal: AbortSignal.timeout(5000) });
     const data = await response.json();
-    return {
+    
+    let rarity = 'Common';
+    if (data.attributes && Array.isArray(data.attributes)) {
+      const rTrait = data.attributes.find(a => a.trait_type && a.trait_type.toLowerCase() === 'rarity');
+      if (rTrait) rarity = rTrait.value;
+    }
+
+    const meta = {
       image: resolveIPFS(data.image || data.image_url),
-      name: data.name || `PacificPod #${tokenId}`
+      name: data.name || `PacificPod #${tokenId}`,
+      rarity: rarity
     };
+    
+    window.podMetadataCache[tokenId] = meta;
+    return meta;
   } catch (error) {
-    return { image: 'https://pacificpods.xyz/static/logo.jpeg', name: `PacificPod #${tokenId}` };
+    return { image: 'https://pacificpods.xyz/static/logo.jpeg', name: `PacificPod #${tokenId}`, rarity: 'Common' };
   }
 }
 
@@ -623,6 +644,10 @@ async function fetchRealFleet() {
       console.warn("Database sync error:", dbErr);
     }
 
+    // Pre-fetch metadata for active stakes to ensure total live points logic reads correct rarities immediately
+    const activeStakedIds = rawDbStakes.filter(d => d.status === 'ACTIVE').map(d => d.tokenId);
+    await Promise.all(activeStakedIds.map(id => fetchNFTMetadata(id)));
+
     let livePoints = 0;
     const currentTimestamp = Math.floor(Date.now() / 1000);
     
@@ -631,13 +656,11 @@ async function fetchRealFleet() {
         const stats = getPodStats(doc.tokenId);
         const secondsStaked = Math.max(0, currentTimestamp - doc.startTime);
         
-        // Multiplier applies to ALL stakes based on duration
         let multiplier = 1.0;
         if (doc.duration === 180) multiplier = 2.5;
         else if (doc.duration === 90) multiplier = 2.0;
         else if (doc.duration === 30) multiplier = 1.5;
 
-        // Soft Stake takes 10% of that total multiplied value
         if (doc.stake === 'SOFT') {
            multiplier = multiplier * 0.1;
         } 
@@ -734,6 +757,8 @@ async function hydrateMetadata() {
 
       const imgEl = document.getElementById(`img-${nft.id}`);
       const nameEl = document.getElementById(`name-${nft.id}`);
+      const rarityEl = document.getElementById(`rarity-${nft.id}`);
+      const estYieldEl = document.getElementById(`est-yield-${nft.id}`);
       
       if (imgEl) {
         imgEl.style.backgroundImage = `url('${nft.image}')`;
@@ -742,6 +767,23 @@ async function hydrateMetadata() {
       if (nameEl) {
         nameEl.innerText = nft.name;
         nameEl.classList.remove('skeleton-text');
+      }
+      if (rarityEl && estYieldEl) {
+        const stats = getPodStats(nft.id);
+        rarityEl.innerText = `#${nft.id} | ${stats.rarity}`;
+        
+        if (nft.state !== 'unstaked') {
+          let mult = 1.0;
+          if (nft.duration === 180) mult = 2.5;
+          else if (nft.duration === 90) mult = 2.0;
+          else if (nft.duration === 30) mult = 1.5;
+
+          if (nft.state === 'soft') {
+            estYieldEl.innerText = `Est. ${((stats.base * mult) / 10).toFixed(1)} $POD/day`;
+          } else if (nft.state === 'locked') {
+            estYieldEl.innerText = `Est. ${(stats.base * mult).toFixed(1)} $POD/day`;
+          }
+        }
       }
     } catch(e) {
       console.warn(`Failed loading meta for ID ${nft.id}`);
@@ -770,8 +812,9 @@ function renderFleet() {
     let actionHTML = '';
     let statusYieldText = '';
 
+    // 🔥 "Ready to Stake" is now cleanly centered and dark green, all card formats line up perfectly.
     if (nft.state === 'unstaked') {
-      statusYieldText = `<span style="font-weight: 600; color:#aaa;">Ready to Stake</span><br><span style="font-size:0.75rem; color:#888;">Est. - $POD/day</span>`;
+      statusYieldText = `<span style="font-weight: 600; color: darkgreen; display: block; text-align: center;">Ready to Stake</span><span id="est-yield-${nft.id}" style="font-size:0.75rem; color:#888; display: block; text-align: center;">Est. - $POD/day</span>`;
       actionHTML = `<button class="action-btn" onclick="openStakeModal(${nft.id})">Stake Pod 🌊</button>`;
     } else {
       let mult = 1.0;
@@ -781,18 +824,18 @@ function renderFleet() {
 
       if (nft.state === 'soft') {
         const softYield = ((stats.base * mult) / 10).toFixed(1);
-        statusYieldText = `<span style="font-weight: 600; color:#00b4d8;">Time remaining: <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span><br><span style="font-size:0.75rem; color:#888;">Est. ${softYield} $POD/day</span>`;
-        actionHTML = `<button class="action-btn style-withdraw" style="background:#fffdfa; color:#e63946; border-color:#e63946;" onclick="unstakeSoft(${nft.id})">Unstake Soft</button>`;
+        statusYieldText = `<span style="font-weight: 600; color:#00b4d8;">Time remaining: <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span><br><span id="est-yield-${nft.id}" style="font-size:0.75rem; color:#888;">Est. ${softYield} $POD/day</span>`;
+        actionHTML = `<button class="action-btn style-withdraw" style="margin-top:10px; width: 100%; font-size:0.9rem; background:#fffdfa; color:#e63946; border-color:#e63946; box-shadow: 0 4px 0px #e63946;" onclick="unstakeSoft(${nft.id})">Unstake Soft</button>`;
       } else if (nft.state === 'locked') {
         const lockedYield = (stats.base * mult).toFixed(1);
-        statusYieldText = `<span style="font-weight: 600; color:#cc7a00;">Time remaining: <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span><br><span style="font-size:0.75rem; color:#888;">Est. ${lockedYield} $POD/day</span>`;
-        actionHTML = `<button class="action-btn style-withdraw" style="background:#fffdfa; color:#cc7a00; border-color:#cc7a00;" onclick="unstakeLocked(${nft.id})">Withdraw</button>`;
+        statusYieldText = `<span style="font-weight: 600; color:#cc7a00;">Time remaining: <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span><br><span id="est-yield-${nft.id}" style="font-size:0.75rem; color:#888;">Est. ${lockedYield} $POD/day</span>`;
+        actionHTML = `<button class="action-btn style-withdraw" style="margin-top:10px; width: 100%; font-size:0.9rem; background:#fffdfa; color:#cc7a00; border-color:#cc7a00; box-shadow: 0 4px 0px #cc7a00;" onclick="unstakeLocked(${nft.id})">Withdraw</button>`;
       }
     }
 
     card.innerHTML = `
       <div id="img-${nft.id}" class="nft-image ${nft.isLoadingMeta ? 'skeleton-bg' : ''}" style="background-image: url('${nft.image || ''}'); background-size: cover; background-position: center;">
-        <span class="nft-rarity-badge">#${nft.id} | ${stats.rarity}</span>
+        <span class="nft-rarity-badge" id="rarity-${nft.id}">#${nft.id} | ${stats.rarity}</span>
       </div>
       <span id="name-${nft.id}" class="nft-name ${nft.isLoadingMeta ? 'skeleton-text' : ''}">${nft.name}</span>
       <span class="nft-yield">${statusYieldText}</span>
@@ -868,7 +911,6 @@ window.selectStakeType = (type) => {
   if (type === 'soft') {
     tabSoft.classList.add('active'); tabLocked.classList.remove('active');
     
-    // Filled in the info block
     strategyInfo.innerHTML = "<strong>Soft Stake:</strong> Keep your Pod in your wallet. Earn 10% of the duration-boosted yield.";
     
     if(boostSpans.length === 4) {
@@ -881,7 +923,6 @@ window.selectStakeType = (type) => {
   } else {
     tabLocked.classList.add('active'); tabSoft.classList.remove('active');
     
-    // Filled in the info block
     strategyInfo.innerHTML = "<strong>Locked Stake:</strong> Transfer your Pod to the Vault to earn full base points + duration multipliers.";
     
     if(boostSpans.length === 4) {

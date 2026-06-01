@@ -401,7 +401,7 @@ const modal = createAppKit({
 });
 
 // ==========================================
-// 2. DOM, STATE & CLEAN CSS INJECTION
+// 2. DOM, STATE & PURE CSS
 // ==========================================
 const web3ConnectBtn = document.getElementById('web3-connect-btn');
 const heroConnectBtn = document.getElementById('hero-connect-btn');
@@ -420,7 +420,7 @@ let currentPodToStake = null;
 let realFleet = [];
 let isFetchingFleet = false; 
 
-// 🔥 CLEAN CSS: 0.85 ratio + equal card heights + White Help Modal
+// 🔥 Bare minimum CSS for the ratio, grid, and the help button
 const style = document.createElement('style');
 style.innerHTML = `
   #nft-container {
@@ -430,13 +430,6 @@ style.innerHTML = `
   }
   .nft-card {
     aspect-ratio: 0.85 / 1;
-    display: flex;
-    flex-direction: column;
-    height: auto !important;
-  }
-  .action-btn {
-    margin-top: 10px;
-    width: 100%;
   }
   /* Floating Help Button */
   #help-fab {
@@ -507,7 +500,6 @@ window.hideTxLoader = () => {
   if(document.getElementById('tx-loader')) document.getElementById('tx-loader').classList.add('hidden');
 }
 
-// 🔥 Updated to exact rarities specified
 function getPodStats(tokenId) {
   const id = Number(tokenId);
   if(id <= 5) return { rarity: '1/1', base: 60.0 };
@@ -631,7 +623,6 @@ async function fetchRealFleet() {
       console.warn("Database sync error:", dbErr);
     }
 
-    // 🔥 Global multiplier math correctly applied live for BOTH soft and locked stakes
     let livePoints = 0;
     const currentTimestamp = Math.floor(Date.now() / 1000);
     
@@ -640,14 +631,16 @@ async function fetchRealFleet() {
         const stats = getPodStats(doc.tokenId);
         const secondsStaked = Math.max(0, currentTimestamp - doc.startTime);
         
+        // Multiplier applies to ALL stakes based on duration
         let multiplier = 1.0;
+        if (doc.duration === 180) multiplier = 2.5;
+        else if (doc.duration === 90) multiplier = 2.0;
+        else if (doc.duration === 30) multiplier = 1.5;
+
+        // Soft Stake takes 10% of that total multiplied value
         if (doc.stake === 'SOFT') {
-           multiplier = 0.1; // 10%
-        } else if (doc.stake === 'LOCKED') {
-           if (doc.duration === 180) multiplier = 2.5;
-           else if (doc.duration === 90) multiplier = 2.0;
-           else if (doc.duration === 30) multiplier = 1.5;
-        }
+           multiplier = multiplier * 0.1;
+        } 
 
         const pointsPerSecond = (stats.base * multiplier) / 86400; 
         livePoints += secondsStaked * pointsPerSecond;
@@ -676,7 +669,6 @@ async function fetchRealFleet() {
       const vaultRes = results[arrayIndex];
       const ownerRes = results[arrayIndex + 1];
 
-      // Pull DB doc to get correct duration for Locked calculations on the frontend
       const dbDoc = rawDbStakes.find(doc => doc.tokenId === i && doc.status === 'ACTIVE');
 
       if (vaultRes && vaultRes.status === 'success' && vaultRes.result) {
@@ -687,7 +679,7 @@ async function fetchRealFleet() {
             id: i, 
             state: "locked", 
             unlockTimestamp: unlockTimestampSeconds * 1000,
-            duration: dbDoc ? dbDoc.duration : 30 // Pass duration for math
+            duration: dbDoc ? dbDoc.duration : 30 
           });
           continue;
         }
@@ -773,46 +765,38 @@ function renderFleet() {
 
     const stats = getPodStats(nft.id);
     const card = document.createElement('div');
-    card.className = `nft-card`;
+    card.className = `nft-card ${nft.state !== 'unstaked' ? 'locked' : ''}`;
     
-    let statusLine = '';
-    let estYieldLine = '';
     let actionHTML = '';
+    let statusYieldText = '';
 
-    // 🔥 Structural Flexbox layout ensures EVERY card is the exact same height visually
     if (nft.state === 'unstaked') {
-      statusLine = `<span style="font-weight: 600; color:#aaa;">Ready to Stake</span>`;
-      estYieldLine = `<span style="font-size:0.75rem; color:#888;">Est. ${stats.base.toFixed(1)} $POD/day</span>`;
+      statusYieldText = `<span style="font-weight: 600; color:#aaa;">Ready to Stake</span><br><span style="font-size:0.75rem; color:#888;">Est. - $POD/day</span>`;
       actionHTML = `<button class="action-btn" onclick="openStakeModal(${nft.id})">Stake Pod 🌊</button>`;
-    } else if (nft.state === 'soft') {
-      const softYield = (stats.base / 10).toFixed(1);
-      statusLine = `<span style="font-weight: 600; color:#00b4d8;">Time remaining: <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span>`;
-      estYieldLine = `<span style="font-size:0.75rem; color:#888;">Est. ${softYield} $POD/day</span>`;
-      actionHTML = `<button class="action-btn style-withdraw" style="background:#fffdfa; color:#e63946; border-color:#e63946;" onclick="unstakeSoft(${nft.id})">Unstake Soft</button>`;
-    } else if (nft.state === 'locked') {
+    } else {
       let mult = 1.0;
       if (nft.duration === 180) mult = 2.5;
       else if (nft.duration === 90) mult = 2.0;
       else if (nft.duration === 30) mult = 1.5;
 
-      const lockedYield = (stats.base * mult).toFixed(1);
-      statusLine = `<span style="font-weight: 600; color:#cc7a00;">Time remaining: <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span>`;
-      estYieldLine = `<span style="font-size:0.75rem; color:#888;">Est. ${lockedYield} $POD/day (${mult}x)</span>`;
-      actionHTML = `<button class="action-btn style-withdraw" style="background:#fffdfa; color:#cc7a00; border-color:#cc7a00;" onclick="unstakeLocked(${nft.id})">Withdraw</button>`;
+      if (nft.state === 'soft') {
+        const softYield = ((stats.base * mult) / 10).toFixed(1);
+        statusYieldText = `<span style="font-weight: 600; color:#00b4d8;">Time remaining: <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span><br><span style="font-size:0.75rem; color:#888;">Est. ${softYield} $POD/day</span>`;
+        actionHTML = `<button class="action-btn style-withdraw" style="background:#fffdfa; color:#e63946; border-color:#e63946;" onclick="unstakeSoft(${nft.id})">Unstake Soft</button>`;
+      } else if (nft.state === 'locked') {
+        const lockedYield = (stats.base * mult).toFixed(1);
+        statusYieldText = `<span style="font-weight: 600; color:#cc7a00;">Time remaining: <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span><br><span style="font-size:0.75rem; color:#888;">Est. ${lockedYield} $POD/day</span>`;
+        actionHTML = `<button class="action-btn style-withdraw" style="background:#fffdfa; color:#cc7a00; border-color:#cc7a00;" onclick="unstakeLocked(${nft.id})">Withdraw</button>`;
+      }
     }
 
-    // Dynamic rendering layout
     card.innerHTML = `
-      <div id="img-${nft.id}" class="nft-image ${nft.isLoadingMeta ? 'skeleton-bg' : ''}" style="background-image: url('${nft.image || ''}'); background-size: cover; background-position: center; height: 180px; border-radius: 12px; margin-bottom: 12px; position: relative;">
-        <span style="position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; color: white; font-weight: bold;">#${nft.id} | ${stats.rarity}</span>
+      <div id="img-${nft.id}" class="nft-image ${nft.isLoadingMeta ? 'skeleton-bg' : ''}" style="background-image: url('${nft.image || ''}'); background-size: cover; background-position: center;">
+        <span class="nft-rarity-badge">#${nft.id} | ${stats.rarity}</span>
       </div>
-      <span id="name-${nft.id}" class="nft-name ${nft.isLoadingMeta ? 'skeleton-text' : ''}" style="font-weight:700; font-size:1.1rem; color:white; margin-bottom:4px; display:block;">${nft.name}</span>
-      
-      <div style="flex-grow: 1; display:flex; flex-direction:column; justify-content:flex-end;">
-        <div style="font-size:0.85rem; margin-bottom: 2px;">${statusLine}</div>
-        <div style="margin-bottom: 12px;">${estYieldLine}</div>
-        ${actionHTML}
-      </div>
+      <span id="name-${nft.id}" class="nft-name ${nft.isLoadingMeta ? 'skeleton-text' : ''}">${nft.name}</span>
+      <span class="nft-yield">${statusYieldText}</span>
+      ${actionHTML}
     `;
     nftContainer.appendChild(card);
   });
@@ -871,29 +855,34 @@ window.selectStakeType = (type) => {
   const tabSoft = document.getElementById('tab-soft');
   const tabLocked = document.getElementById('tab-locked');
   const lockOptions = document.getElementById('lock-options');
+  const strategyInfo = document.getElementById('strategy-info');
   
-  if (!tabSoft || !tabLocked || !lockOptions) return;
+  if (!tabSoft || !tabLocked || !lockOptions || !strategyInfo) return;
 
   const boostSpans = document.querySelectorAll('.lock-boost');
   lockOptions.classList.remove('hidden'); 
 
-  // 🔥 Dynamically fetch the specific base yield for the Pod in the popup
   const stats = currentPodToStake ? getPodStats(currentPodToStake) : { base: 10.0 };
   const baseYield = stats.base;
 
   if (type === 'soft') {
     tabSoft.classList.add('active'); tabLocked.classList.remove('active');
     
+    // Filled in the info block
+    strategyInfo.innerHTML = "<strong>Soft Stake:</strong> Keep your Pod in your wallet. Earn 10% of the duration-boosted yield.";
+    
     if(boostSpans.length === 4) {
-      const softYield = (baseYield / 10).toFixed(1);
-      boostSpans[0].innerText = `Est. ${softYield} $POD/d`;
-      boostSpans[1].innerText = `Est. ${softYield} $POD/d`;
-      boostSpans[2].innerText = `Est. ${softYield} $POD/d`;
-      boostSpans[3].innerText = `Est. ${softYield} $POD/d`;
+      boostSpans[0].innerText = `Est. ${((baseYield * 1.0) / 10).toFixed(1)} $POD/d`;
+      boostSpans[1].innerText = `Est. ${((baseYield * 1.5) / 10).toFixed(1)} $POD/d`;
+      boostSpans[2].innerText = `Est. ${((baseYield * 2.0) / 10).toFixed(1)} $POD/d`;
+      boostSpans[3].innerText = `Est. ${((baseYield * 2.5) / 10).toFixed(1)} $POD/d`;
     }
 
   } else {
     tabLocked.classList.add('active'); tabSoft.classList.remove('active');
+    
+    // Filled in the info block
+    strategyInfo.innerHTML = "<strong>Locked Stake:</strong> Transfer your Pod to the Vault to earn full base points + duration multipliers.";
     
     if(boostSpans.length === 4) {
       boostSpans[0].innerText = `Est. ${(baseYield * 1.0).toFixed(1)} $POD/d`;

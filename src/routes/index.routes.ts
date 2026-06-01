@@ -1,9 +1,9 @@
 import { Router } from "express";
-import authRoutes from "./auth.routes.js"
-import checkerRoutes from "./checker.routes.js"
-import stakeRoutes from "./staking.routes.js";
-import webhookRoutes from "./webhook.routes.js";
-import { AuthController } from "../controllers/auth.controllers.js"
+import authRoutes from "./auth.routes"
+import checkerRoutes from "./checker.routes"
+import stakeRoutes from "./staking.routes";
+import webhookRoutes from "./webhook.routes";
+import { AuthController } from "../controllers/auth.controllers"
 
 const router = Router()
 

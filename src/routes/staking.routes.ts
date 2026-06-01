@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { StakingController } from "../controllers/staking.controllers";
+import { StakingController } from "../controllers/staking.controllers.js";
 
 const router = Router();
 

@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import { IAllocation } from "../types/allocation";
+import { IAllocation } from "../types/allocation.js";
 
 const allocationSchema = new Schema<IAllocation>({
     walletAddress:{

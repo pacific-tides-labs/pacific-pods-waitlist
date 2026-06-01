@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { IAllocation } from "../types/allocation";
-import { CheckerService } from "../services/checker.services";
-import { checkerUISchema } from "../validations/checker.zod";
+import { IAllocation } from "../types/allocation.js";
+import { CheckerService } from "../services/checker.services.js";
+import { checkerUISchema } from "../validations/checker.zod.js";
 import "dotenv/config";
 
 export class CheckerController {

@@ -41,7 +41,7 @@ const modal = createAppKit({
 });
 
 // ==========================================
-// 2. DOM, STATE & PREMIUM CSS INJECTION
+// 2. DOM, STATE & CSS INJECTION
 // ==========================================
 const web3ConnectBtn = document.getElementById('web3-connect-btn');
 const heroConnectBtn = document.getElementById('hero-connect-btn');
@@ -60,7 +60,7 @@ let currentPodToStake = null;
 let realFleet = [];
 let isFetchingFleet = false; 
 
-// 🔥 THE NEW UI CSS: Handles the 0.85 ratio, rarity badges, and clean data blocks
+// 🔥 CLEAN CSS: Original layout + 0.85 ratio + the floating Help button
 const style = document.createElement('style');
 style.innerHTML = `
   #nft-container {
@@ -74,54 +74,52 @@ style.innerHTML = `
     flex-direction: column;
     justify-content: space-between;
     height: auto !important;
-    background: rgba(20, 25, 40, 0.7);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
-    padding: 16px;
   }
-  .nft-header {
+  /* Floating Help Button */
+  #help-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 50px;
+    height: 50px;
+    background: #003b8e;
+    color: white;
+    border-radius: 50%;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 1000;
+    transition: transform 0.2s;
   }
-  .rarity-badge {
-    font-size: 0.65rem;
-    font-weight: 800;
-    padding: 4px 8px;
-    border-radius: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  #help-fab:hover {
+    transform: scale(1.1);
   }
-  /* Rarity Colors */
-  .rarity-legendary { background: rgba(255, 215, 0, 0.15); color: #FFD700; border: 1px solid rgba(255,215,0,0.3); }
-  .rarity-epic { background: rgba(153, 50, 204, 0.15); color: #DDA0DD; border: 1px solid rgba(153,50,204,0.3); }
-  .rarity-rare { background: rgba(0, 191, 255, 0.15); color: #00BFFF; border: 1px solid rgba(0,191,255,0.3); }
-  .rarity-uncommon { background: rgba(50, 205, 50, 0.15); color: #90EE90; border: 1px solid rgba(50,205,50,0.3); }
-  .rarity-common { background: rgba(169, 169, 169, 0.15); color: #D3D3D3; border: 1px solid rgba(169,169,169,0.3); }
-  
-  .yield-stat {
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  /* Minimal Help Modal */
+  #help-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1001;
   }
-  .yield-stat-col {
-    display: flex;
-    flex-direction: column;
+  #help-modal-content {
+    background: #1a1a24; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
+    padding: 32px; max-width: 400px; width: 90%; position: relative;
+    color: #eee; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   }
-  .yield-label { font-size: 0.7rem; color: #aaa; text-transform: uppercase; margin-bottom: 2px;}
-  .yield-value { font-size: 0.9rem; color: #fff; font-weight: 700; }
-  .yield-active { color: #00b4d8; }
+  .help-close {
+    position: absolute; top: 16px; right: 20px; cursor: pointer;
+    font-size: 1.5rem; color: #888;
+  }
+  .help-close:hover { color: #fff; }
 `;
 document.head.appendChild(style);
 
-
 // ==========================================
-// 3. UI UTILITIES & SYSTEM INJECTIONS
+// 3. UI UTILITIES
 // ==========================================
 window.showToast = (message, type = "info") => {
   const hub = document.getElementById('toast-hub');
@@ -146,10 +144,8 @@ window.hideTxLoader = () => {
   if(document.getElementById('tx-loader')) document.getElementById('tx-loader').classList.add('hidden');
 }
 
-// Tokenomics helper logic for the frontend visually 
 function getPodStats(tokenId) {
   const id = Number(tokenId);
-  // Simulating rarity tiers based on Token ID ranges for UI display
   if(id <= 10) return { rarity: 'Legendary', base: 55.0 };
   if(id <= 50) return { rarity: 'Epic', base: 35.0 };
   if(id <= 120) return { rarity: 'Rare', base: 22.5 };
@@ -157,52 +153,30 @@ function getPodStats(tokenId) {
   return { rarity: 'Common', base: 10.0 };
 }
 
-// Injects the Tokenomics guide at the bottom of the screen
-function injectTokenomicsFooter() {
-  if (document.getElementById('tokenomics-footer')) return;
-  const parent = document.getElementById('nft-container')?.parentElement;
-  if(!parent) return;
+function setupHelpModal() {
+  if (document.getElementById('help-fab')) return;
+  
+  const fab = document.createElement('div');
+  fab.id = 'help-fab';
+  fab.innerHTML = '?';
+  fab.onclick = () => document.getElementById('help-modal-overlay').classList.remove('hidden');
+  document.body.appendChild(fab);
 
-  const footer = document.createElement('div');
-  footer.id = 'tokenomics-footer';
-  footer.style.cssText = "margin-top: 60px; padding: 32px; background: rgba(10, 15, 30, 0.8); border-radius: 16px; border: 1px solid rgba(0, 180, 216, 0.2); color: #ddd;";
-  footer.innerHTML = `
-    <h2 style="color: white; margin-bottom: 24px; font-size: 1.6rem;">🌊 The Depths: $POD Points System</h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px;">
-      
-      <div>
-        <h3 style="color: #00b4d8; margin-bottom: 12px; font-size: 1.1rem; display:flex; align-items:center; gap:8px;">💎 Rarity Base Yields</h3>
-        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.95rem; line-height: 1.8;">
-          <li><span style="display:inline-block; width:90px; color:#aaa;">Common:</span> <strong>10.0 $POD / day</strong></li>
-          <li><span style="display:inline-block; width:90px; color:#90EE90;">Uncommon:</span> <strong>15.0 $POD / day</strong></li>
-          <li><span style="display:inline-block; width:90px; color:#00BFFF;">Rare:</span> <strong>22.5 $POD / day</strong></li>
-          <li><span style="display:inline-block; width:90px; color:#DDA0DD;">Epic:</span> <strong>35.0 $POD / day</strong></li>
-          <li><span style="display:inline-block; width:90px; color:#FFD700;">Legendary:</span> <strong>50.0 - 60.0 $POD / day</strong></li>
-        </ul>
+  const modal = document.createElement('div');
+  modal.id = 'help-modal-overlay';
+  modal.className = 'hidden';
+  modal.innerHTML = `
+    <div id="help-modal-content">
+      <span class="help-close" onclick="document.getElementById('help-modal-overlay').classList.add('hidden')">&times;</span>
+      <h2 style="margin-top:0; color:white; font-size:1.4rem;">$POD Tokenomics</h2>
+      <div style="font-size:0.95rem; line-height:1.6; color:#bbb; margin-top:20px;">
+        <p><strong style="color:#00b4d8;">💎 Base Yields:</strong><br>Common (10), Uncommon (15), Rare (22.5), Epic (35), Legendary (55).</p>
+        <p><strong style="color:#e63946;">⚡ Soft Staking:</strong><br>Earn 10% of Base Yield. No locks, keep it in your wallet.</p>
+        <p><strong style="color:#cc7a00;">🔒 Locked Staking:</strong><br>Earn 100% of Base Yield + Multipliers:<br>7 Days (1.0x), 30 Days (1.5x), 90 Days (2.0x), 180 Days (2.5x).</p>
       </div>
-
-      <div>
-        <h3 style="color: #e63946; margin-bottom: 12px; font-size: 1.1rem; display:flex; align-items:center; gap:8px;">⚡ Soft Staking</h3>
-        <p style="font-size: 0.95rem; margin: 0; line-height: 1.6; color:#bbb;">
-          Keep your Pod securely in your wallet. Earn a baseline yield of <strong>10%</strong> (Base Yield ÷ 10). 
-          Instantly unstake at any time with zero lock-up penalty. Perfect for maintaining liquidity.
-        </p>
-      </div>
-
-      <div>
-        <h3 style="color: #cc7a00; margin-bottom: 12px; font-size: 1.1rem; display:flex; align-items:center; gap:8px;">🔒 Locked Multipliers</h3>
-        <p style="font-size: 0.95rem; margin: 0 0 12px 0; line-height: 1.6; color:#bbb;">Transfer your Pod to the secure Vault to earn your full base yield <strong>PLUS</strong> massive duration multipliers:</p>
-        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.95rem; line-height: 1.8;">
-          <li><span style="display:inline-block; width:80px; color:#aaa;">7 Days:</span> <strong>1.0x Boost</strong></li>
-          <li><span style="display:inline-block; width:80px; color:#aaa;">30 Days:</span> <strong>1.5x Boost</strong></li>
-          <li><span style="display:inline-block; width:80px; color:#aaa;">90 Days:</span> <strong>2.0x Boost</strong></li>
-          <li><span style="display:inline-block; width:80px; color:#aaa;">180 Days:</span> <strong>2.5x Boost</strong></li>
-        </ul>
-      </div>
-
     </div>
   `;
-  parent.appendChild(footer);
+  document.body.appendChild(modal);
 }
 
 // ==========================================
@@ -224,6 +198,7 @@ modal.subscribeAccount((state) => {
     if (dashboardView) dashboardView.classList.remove('hidden');
 
     fetchRealFleet(); 
+    setupHelpModal();
   } else {
     userAddress = null;
     if (web3ConnectBtn) {
@@ -285,7 +260,6 @@ async function fetchRealFleet() {
   let earnedPodPoints = 0.00;
 
   try {
-    // 🔥 1. Fetch RAW off-chain database documents using Query Params
     try {
       const backendRes = await fetch(`/api/staking/raw?walletAddress=${userAddress}`);
       if (backendRes.ok) {
@@ -295,7 +269,6 @@ async function fetchRealFleet() {
       console.warn("Database sync error:", dbErr);
     }
 
-    // FRONTEND LIVE POINTS CALCULATION
     let livePoints = 0;
     const currentTimestamp = Math.floor(Date.now() / 1000);
     
@@ -303,10 +276,10 @@ async function fetchRealFleet() {
       if (doc.status === 'ACTIVE' && doc.stake === 'SOFT') {
         const stats = getPodStats(doc.tokenId);
         const secondsStaked = Math.max(0, currentTimestamp - doc.startTime);
-        const pointsPerSecond = (stats.base / 10) / 86400; // Div by 10 for Soft Stake penalty
+        const pointsPerSecond = (stats.base / 10) / 86400; 
         livePoints += secondsStaked * pointsPerSecond;
       }
-      earnedPodPoints += (doc.points || 0); // Add banked points
+      earnedPodPoints += (doc.points || 0); 
     });
     
     earnedPodPoints += livePoints;
@@ -315,7 +288,6 @@ async function fetchRealFleet() {
       document.getElementById('val-tides').innerText = Number(earnedPodPoints).toFixed(2);
     }
 
-    // 2. FAST MULTICALL FETCHING
     const chunkSize = 150; 
     const promiseBatches = [];
     for (let i = 0; i < combinedContracts.length; i += chunkSize) {
@@ -331,7 +303,6 @@ async function fetchRealFleet() {
       const vaultRes = results[arrayIndex];
       const ownerRes = results[arrayIndex + 1];
 
-      // Check Hard Lock (Directly from Blockchain)
       if (vaultRes && vaultRes.status === 'success' && vaultRes.result) {
         const staker = vaultRes.result[0];
         const unlockTimestampSeconds = Number(vaultRes.result[1]);
@@ -341,7 +312,6 @@ async function fetchRealFleet() {
         }
       }
 
-      // Check Soft Lock (Calculated on the Frontend from Raw DB)
       const softStakeDoc = rawDbStakes.find(doc => doc.tokenId === i && doc.stake === 'SOFT' && doc.status === 'ACTIVE');
       if (softStakeDoc) {
         const durationSeconds = softStakeDoc.duration * 86400;
@@ -355,7 +325,6 @@ async function fetchRealFleet() {
         continue;
       }
 
-      // Check Wallet Unstaked
       if (ownerRes && ownerRes.status === 'success' && ownerRes.result) {
         const owner = ownerRes.result;
         if (owner && owner.toLowerCase() === userAddress.toLowerCase()) {
@@ -374,7 +343,6 @@ async function fetchRealFleet() {
     isFetchingFleet = false;
     renderFleet(); 
     hydrateMetadata();
-    injectTokenomicsFooter(); // Show the Tokenomics Guide!
 
   } catch (globalErr) {
     console.error("Multicall/Sync Full Scan Error:", globalErr);
@@ -427,51 +395,38 @@ function renderFleet() {
     card.className = `nft-card ${nft.state !== 'unstaked' ? 'locked' : ''}`;
     
     let actionHTML = '';
-    let statusText = 'Ready to Stake';
-    let currentYield = `${stats.base} $POD`; // Base for Unstaked display
+    let statusYieldText = 'Ready to Stake';
+    let currentYieldText = `${stats.base} $POD/day`; 
 
     if (nft.state === 'unstaked') {
       actionHTML = `<button class="action-btn" onclick="openStakeModal(${nft.id})">Stake Pod 🌊</button>`;
     } else if (nft.state === 'soft') {
-      statusText = 'Earning Soft $POD ⚡';
-      currentYield = `${(stats.base / 10).toFixed(1)} $POD`; // 10% penalty math
+      statusYieldText = 'Earning Soft $POD ⚡';
+      currentYieldText = `${(stats.base / 10).toFixed(1)} $POD/day`; 
       actionHTML = `
-        <div class="locked-details" style="padding:0; background:none; border:none; margin-top:4px;">
-          <span style="font-size:0.8rem; display:block; margin-bottom:8px;">⚡ Unlock in <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span>
-          <button class="action-btn style-withdraw" style="width: 100%; font-size:0.9rem; background:#fffdfa; color:#e63946; border-color:#e63946; box-shadow: 0 4px 0px #e63946;" onclick="unstakeSoft(${nft.id})">Unstake Soft</button>
+        <div class="locked-details">
+          <span>⚡ Unlock in <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span>
+          <button class="action-btn style-withdraw" style="margin-top:10px; width: 100%; font-size:0.9rem; background:#fffdfa; color:#e63946; border-color:#e63946; box-shadow: 0 4px 0px #e63946;" onclick="unstakeSoft(${nft.id})">Unstake Soft</button>
         </div>`;
     } else if (nft.state === 'locked') {
-      statusText = 'Multiplying Yield 🚀';
-      currentYield = `Up to ${(stats.base * 2.5).toFixed(1)} $POD`; // Show max potential
+      statusYieldText = 'Multiplying Yield 🚀';
+      currentYieldText = `Up to ${(stats.base * 2.5).toFixed(1)} $POD/day`; 
       actionHTML = `
-        <div class="locked-details" style="padding:0; background:none; border:none; margin-top:4px;">
-          <span style="font-size:0.8rem; display:block; margin-bottom:8px;">🔒 Unlocks in <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span>
-          <button class="action-btn style-withdraw" style="width: 100%; font-size:0.9rem; background:#fffdfa; color:#cc7a00; border-color:#cc7a00; box-shadow: 0 4px 0px #cc7a00;" onclick="unstakeLocked(${nft.id})">Withdraw</button>
+        <div class="locked-details">
+          🔒 Unlocks in <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span>
+          <button class="action-btn style-withdraw" style="margin-top:10px; width: 100%; font-size:0.9rem; background:#fffdfa; color:#cc7a00; border-color:#cc7a00; box-shadow: 0 4px 0px #cc7a00;" onclick="unstakeLocked(${nft.id})">Withdraw</button>
         </div>`;
     }
 
     card.innerHTML = `
-      <div id="img-${nft.id}" class="nft-image ${nft.isLoadingMeta ? 'skeleton-bg' : ''}" style="background-image: url('${nft.image || ''}'); background-size: cover; background-position: center; border-radius: 12px; height: 160px; margin-bottom: 12px; position: relative;">
-        <span style="position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; color: white; font-weight: bold;">#${nft.id}</span>
+      <div id="img-${nft.id}" class="nft-image ${nft.isLoadingMeta ? 'skeleton-bg' : ''}" style="background-image: url('${nft.image || ''}'); background-size: cover; background-position: center;">
+        <span class="nft-rarity-badge">#${nft.id} | ${stats.rarity}</span>
       </div>
-      
-      <div class="nft-header">
-        <span id="name-${nft.id}" class="nft-name ${nft.isLoadingMeta ? 'skeleton-text' : ''}" style="font-weight:700; font-size:1.05rem; color:white;">${nft.name}</span>
-        <span class="rarity-badge rarity-${stats.rarity.toLowerCase()}">${stats.rarity}</span>
-      </div>
-
-      <div class="yield-stat">
-        <div class="yield-stat-col">
-          <span class="yield-label">Base Rate</span>
-          <span class="yield-value">${stats.base} $POD</span>
-        </div>
-        <div class="yield-stat-col" style="text-align: right;">
-          <span class="yield-label">Current Yield</span>
-          <span class="yield-value yield-active">${currentYield}</span>
-        </div>
-      </div>
-      
-      <span class="nft-yield" style="font-size:0.85rem; color:#00b4d8; margin-bottom: 8px; display:block; text-align: center;">${statusText}</span>
+      <span id="name-${nft.id}" class="nft-name ${nft.isLoadingMeta ? 'skeleton-text' : ''}">${nft.name}</span>
+      <span class="nft-yield">
+        ${statusYieldText}<br>
+        <span style="font-size:0.75rem; color:#888;">Est. ${currentYieldText}</span>
+      </span>
       ${actionHTML}
     `;
     nftContainer.appendChild(card);

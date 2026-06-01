@@ -1,10 +1,31 @@
 import { Request, Response } from "express";
-import { StakingService } from "../services/staking.services";
-import { stakingUISchema } from "../validations/staking.zod";
-import { IStaking } from "../types/staking";
+import { StakingService } from "../services/staking.services.js";
+import { stakingUISchema } from "../validations/staking.zod.js";
+import { IStaking } from "../types/staking.js";
+import { StakingRepository } from "../repositories/staking.repository.js";
 
 export class StakingController {
-    
+
+    static async getFullUserDocuments(req: Request, res: Response): Promise<void> {
+        try {
+            const walletAddress = req.query.walletAddress as string;
+
+            if (!walletAddress || walletAddress.length !== 42) {
+                res.status(400).json({ error: "Missing or invalid wallet address." });
+                return;
+            }
+
+            // 1. Fetch the complete array of MongoDB documents (includes duration, points, stake, etc.)
+            const fullDocumentsArray = await StakingRepository.getActiveStakesByWallet(walletAddress);
+
+            // 2. Dump the raw array exactly as it is directly to the frontend
+            res.status(200).json(fullDocumentsArray);
+
+        } catch (err) {
+            res.status(500).json({ error: String(err) });
+        }
+    }
+
     // GET /api/staking?walletAddress=0x...
     static async getUserStakingData(req: Request, res: Response): Promise<void> {
         try {

@@ -1,5 +1,5 @@
-import { IAllocation } from "../types/allocation";
-import { CheckerRepository } from "../repositories/checker.repository";
+import { IAllocation } from "../types/allocation.js";
+import { CheckerRepository } from "../repositories/checker.repository.js";
 
 // Define a standard return type for the service
 export type ServiceResponse = {

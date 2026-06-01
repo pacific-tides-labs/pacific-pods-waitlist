@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { IUser } from "../types/user";
-import { AuthService } from "../services/auth.services";
-import { userVRSchema, userVLSchema } from "../validations/user.zod";
+import { IUser } from "../types/user.js";
+import { AuthService } from "../services/auth.services.js";
+import { userVRSchema, userVLSchema } from "../validations/user.zod.js";
 import "dotenv/config";
 
 export class AuthController {

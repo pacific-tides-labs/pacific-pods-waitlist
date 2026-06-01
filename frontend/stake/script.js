@@ -61,7 +61,7 @@ let realFleet = [];
 let isFetchingFleet = false; 
 
 // ==========================================
-// 3. UI UTILITIES (TOASTS & LOADERS)
+// 3. UI UTILITIES
 // ==========================================
 window.showToast = (message, type = "info") => {
   const hub = document.getElementById('toast-hub');
@@ -87,7 +87,7 @@ window.hideTxLoader = () => {
 }
 
 // ==========================================
-// 4. AUTH & FETCHING
+// 4. AUTH & HIGH-SPEED DUAL-SCAN FETCHING
 // ==========================================
 modal.subscribeAccount((state) => {
   isWalletConnected = state.isConnected;
@@ -126,7 +126,6 @@ function resolveIPFS(url) {
   return cleanUrl;
 }
 
-// Optimized IPFS fetcher
 async function fetchNFTMetadata(tokenId) {
   try {
     let uri = await readContract(config, { address: NFT_CONTRACT, abi: nftAbi, functionName: 'tokenURI', args: [BigInt(tokenId)] });
@@ -142,7 +141,6 @@ async function fetchNFTMetadata(tokenId) {
   }
 }
 
-// 🔥 INSTANT MULTICALL + LAZY LOADING 🔥
 async function fetchRealFleet() {
   if (!userAddress || !nftContainer || isFetchingFleet) return;
   isFetchingFleet = true;
@@ -151,55 +149,75 @@ async function fetchRealFleet() {
     <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; width: 100%; text-align: center;">
       <div class="chunky-spinner"></div>
       <h2 style="margin-top: 20px; color: white;">Scanning the Depths...</h2>
-      <p class="subtitle" style="color: #aaa;">Locating your fleet via High-Speed Multicall</p>
+      <p class="subtitle" style="color: #aaa;">Syncing database ledger & on-chain data</p>
     </div>`;
   
+  const minTokenId = 1;
   const maxTokenIdToCheck = 333; 
-  const vaultCalls = [];
-  const ownerCalls = [];
+  const combinedContracts = [];
 
-  for (let i = 0; i <= maxTokenIdToCheck; i++) {
-    vaultCalls.push({ address: VAULT_CONTRACT, abi: vaultAbi, functionName: 'stakingLedger', args: [BigInt(i)] });
-    ownerCalls.push({ address: NFT_CONTRACT, abi: nftAbi, functionName: 'ownerOf', args: [BigInt(i)] });
+  // Build smart contract Multicall payloads
+  for (let i = minTokenId; i <= maxTokenIdToCheck; i++) {
+    combinedContracts.push({ address: VAULT_CONTRACT, abi: vaultAbi, functionName: 'stakingLedger', args: [BigInt(i)] });
+    combinedContracts.push({ address: NFT_CONTRACT, abi: nftAbi, functionName: 'ownerOf', args: [BigInt(i)] });
   }
 
   const ownedOrStakedIds = [];
-  const chunkSize = 150; // Massively chunked for speed
+  let softStakedTokenIds = [];
+  let earnedTidesPoints = 0.00;
 
   try {
-    for (let i = 0; i <= maxTokenIdToCheck; i += chunkSize) {
-      const vChunk = vaultCalls.slice(i, i + chunkSize);
-      const oChunk = ownerCalls.slice(i, i + chunkSize);
+    // 🔥 STEP 1: Fetch off-chain points and soft stakes from the backend simultaneously
+    try {
+      const backendRes = await fetch(`/api/staking?walletAddress=${userAddress}`);
+      if (backendRes.ok) {
+        const backendData = await backendRes.json();
+        // Expecting structure: { totalPoints: 120.50, softStakedTokens: [12, 45, 88] }
+        earnedTidesPoints = backendData.totalPoints || 0.00;
+        softStakedTokenIds = backendData.softStakedTokens || [];
+      }
+    } catch (dbErr) {
+      console.warn("Database sync error (using local mock fallback):", dbErr);
+    }
 
-      const [vRes, oRes] = await Promise.all([
-        readContracts(config, { contracts: vChunk }),
-        readContracts(config, { contracts: oChunk })
-      ]);
+    // Update points UI element directly
+    if (document.getElementById('val-tides')) {
+      document.getElementById('val-tides').innerText = Number(earnedTidesPoints).toFixed(2);
+    }
 
-      for (let j = 0; j < vChunk.length; j++) {
-        const id = i + j;
-        const v = vRes[j];
-        const o = oRes[j];
+    // 🔥 STEP 2: Fetch blockchain state via Multicall
+    const results = await readContracts(config, { contracts: combinedContracts });
 
-        if (v.status === 'success' && v.result) {
-          const staker = v.result[0];
-          const unlockTimestamp = Number(v.result[1]);
-          if (staker && staker.toLowerCase() === userAddress.toLowerCase()) {
-            ownedOrStakedIds.push({ id, state: "locked", unlockTimestamp: unlockTimestamp * 1000 });
-            continue;
-          }
+    for (let i = minTokenId; i <= maxTokenIdToCheck; i++) {
+      const arrayIndex = (i - minTokenId) * 2;
+      const vaultRes = results[arrayIndex];
+      const ownerRes = results[arrayIndex + 1];
+
+      // Check if it is hard locked on-chain
+      if (vaultRes.status === 'success' && vaultRes.result) {
+        const staker = vaultRes.result[0];
+        const unlockTimestamp = Number(vaultRes.result[1]);
+        if (staker && staker.toLowerCase() === userAddress.toLowerCase()) {
+          ownedOrStakedIds.push({ id: i, state: "locked", unlockTimestamp: unlockTimestamp * 1000 });
+          continue;
         }
+      }
 
-        if (o.status === 'success' && o.result) {
-          const owner = o.result;
-          if (owner && owner.toLowerCase() === userAddress.toLowerCase()) {
-            ownedOrStakedIds.push({ id, state: "unstaked", unlockTimestamp: null });
-          }
+      // Check if it is soft-staked on backend
+      if (softStakedTokenIds.includes(i)) {
+        ownedOrStakedIds.push({ id: i, state: "soft", unlockTimestamp: null });
+        continue;
+      }
+
+      // Check if user owns it sitting unstaked in wallet
+      if (ownerRes.status === 'success' && ownerRes.result) {
+        const owner = ownerRes.result;
+        if (owner && owner.toLowerCase() === userAddress.toLowerCase()) {
+          ownedOrStakedIds.push({ id: i, state: "unstaked", unlockTimestamp: null });
         }
       }
     }
 
-    // ⚡ INSTANT UI RENDER (Bypass IPFS entirely for initial load)
     realFleet = ownedOrStakedIds.map(item => ({
       ...item,
       image: '', 
@@ -208,18 +226,15 @@ async function fetchRealFleet() {
     }));
 
     isFetchingFleet = false;
-    renderFleet(); // Show UI immediately
-
-    // Hydrate metadata in background
+    renderFleet(); 
     hydrateMetadata();
 
   } catch (globalErr) {
-    console.error("Multicall Fetch Error:", globalErr);
+    console.error("Multicall/Sync Full Scan Error:", globalErr);
     isFetchingFleet = false;
   }
 }
 
-// Background IPFS Hydration Engine
 async function hydrateMetadata() {
   realFleet.forEach(async (nft) => {
     if (!nft.isLoadingMeta) return;
@@ -229,7 +244,6 @@ async function hydrateMetadata() {
       nft.name = meta.name;
       nft.isLoadingMeta = false;
 
-      // Update DOM directly to prevent flashing/re-renders while user interacts
       const imgEl = document.getElementById(`img-${nft.id}`);
       const nameEl = document.getElementById(`name-${nft.id}`);
       
@@ -262,12 +276,22 @@ function renderFleet() {
     if (nft.state !== 'unstaked') totalStaked++;
 
     const card = document.createElement('div');
-    card.className = `nft-card ${nft.state === 'locked' ? 'locked' : ''}`;
+    card.className = `nft-card ${nft.state !== 'unstaked' ? 'locked' : ''}`;
     
     let actionHTML = '';
+    let statusYieldText = 'Ready to Stake';
+
     if (nft.state === 'unstaked') {
       actionHTML = `<button class="action-btn" onclick="openStakeModal(${nft.id})">Stake Pod 🌊</button>`;
+    } else if (nft.state === 'soft') {
+      statusYieldText = 'Earning Base $TIDES 🌊';
+      actionHTML = `
+        <div class="locked-details">
+          <span>⚡ Soft Staking Active</span>
+          <button class="action-btn style-withdraw" style="margin-top:10px; width: 100%; font-size:0.9rem; background:#fffdfa; color:#e63946; border-color:#e63946; box-shadow: 0 4px 0px #e63946;" onclick="unstakeSoft(${nft.id})">Unstake Soft</button>
+        </div>`;
     } else if (nft.state === 'locked') {
+      statusYieldText = 'Multiplying Yield 🚀';
       actionHTML = `
         <div class="locked-details">
           🔒 Unlocks in <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span>
@@ -275,13 +299,12 @@ function renderFleet() {
         </div>`;
     }
 
-    // Notice the specific IDs added to the image and name span for direct background hydration
     card.innerHTML = `
       <div id="img-${nft.id}" class="nft-image ${nft.isLoadingMeta ? 'skeleton-bg' : ''}" style="background-image: url('${nft.image || ''}'); background-size: cover; background-position: center;">
         <span class="nft-rarity-badge">#${nft.id}</span>
       </div>
       <span id="name-${nft.id}" class="nft-name ${nft.isLoadingMeta ? 'skeleton-text' : ''}">${nft.name}</span>
-      <span class="nft-yield">${nft.state === 'locked' ? 'Multiplying Yield 🚀' : 'Ready to Stake'}</span>
+      <span class="nft-yield">${statusYieldText}</span>
       ${actionHTML}
     `;
     nftContainer.appendChild(card);
@@ -314,7 +337,7 @@ function startCountdownTimers() {
 }
 
 // ==========================================
-// 5. TX EXECUTION ENGINE
+// 5. TX EXECUTION ENGINE + BACKEND LINKING
 // ==========================================
 window.openStakeModal = (id) => {
   currentPodToStake = id;
@@ -340,14 +363,36 @@ window.selectStakeType = (type) => {
   
   if (!tabSoft || !tabLocked || !lockOptions || !strategyInfo) return;
 
+  const boostSpans = document.querySelectorAll('.lock-boost');
+
+  // 🔥 THE FIX: Always remove hidden so users can click a duration!
+  lockOptions.classList.remove('hidden'); 
+
   if (type === 'soft') {
     tabSoft.classList.add('active'); tabLocked.classList.remove('active');
-    lockOptions.classList.add('hidden'); 
-    strategyInfo.innerHTML = "<strong>Soft Stake:</strong> Earn base $TIDES. Gasless signature required.";
+    
+    strategyInfo.innerHTML = "<strong>Soft Stake:</strong> Earn 10% base $TIDES. Keep Pod in wallet. No duration multipliers.";
+    
+    // Change the tile text so they know it's a flat 10% rate
+    if(boostSpans.length === 4) {
+      boostSpans[0].innerText = "10% Yield";
+      boostSpans[1].innerText = "10% Yield";
+      boostSpans[2].innerText = "10% Yield";
+      boostSpans[3].innerText = "10% Yield";
+    }
+
   } else {
     tabLocked.classList.add('active'); tabSoft.classList.remove('active');
-    lockOptions.classList.remove('hidden'); 
-    strategyInfo.innerHTML = "<strong>Locked Stake:</strong> Transfer asset to vault to earn multipliers.";
+    
+    strategyInfo.innerHTML = "<strong>Locked Stake:</strong> Transfer asset to vault to earn full base points + massive duration multipliers.";
+    
+    // Put the multipliers back on the tiles!
+    if(boostSpans.length === 4) {
+      boostSpans[0].innerText = "1.0x Boost";
+      boostSpans[1].innerText = "1.5x Boost";
+      boostSpans[2].innerText = "2.0x Boost";
+      boostSpans[3].innerText = "2.5x Boost";
+    }
   }
 }
 
@@ -366,28 +411,45 @@ if (confirmStakeBtn) {
     try {
       if (isSoft) {
         window.showTxLoader("Soft Staking", "Please sign the message in your wallet.");
+        
         await signMessage(config, { message: `I am Soft Staking PacificPod #${currentPodToStake} to earn off-chain $TIDES.` });
+        
+        window.showTxLoader("Recording State", "Logging soft stake into database...");
+
+        const backendResponse = await fetch("/api/staking", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress: userAddress,
+            tokenId: Number(currentPodToStake),
+            duration: Number(selectedLockDuration), // This will now successfully have a value!
+            stake: "SOFT"
+          })
+        });
+
+        const backendData = await backendResponse.json();
+        if (!backendResponse.ok) throw new Error(backendData.error || "Backend recording rejected.");
+
         window.hideTxLoader();
         window.showToast(`Soft Staking active for Pod #${currentPodToStake}!`, "success");
       } else {
-        let approvedAddress = "0x0000000000000000000000000000000000000000";
+        let isApproved = false;
         try {
-           approvedAddress = await readContract(config, { address: NFT_CONTRACT, abi: nftAbi, functionName: 'getApproved', args: [BigInt(currentPodToStake)] });
+           isApproved = await readContract(config, { address: NFT_CONTRACT, abi: nftAbi, functionName: 'isApprovedForAll', args: [userAddress, VAULT_CONTRACT] });
         } catch (e) {
-           console.warn("Approval not explicitly set, requesting standard approval...");
+           console.warn("Could not verify contract approvals.");
         }
 
-        if (approvedAddress.toLowerCase() !== VAULT_CONTRACT.toLowerCase()) {
-          window.showTxLoader("Approval Required", "Approve the Staking Vault in your wallet.");
-          const txHashApprove = await writeContract(config, { address: NFT_CONTRACT, abi: nftAbi, functionName: 'approve', args: [VAULT_CONTRACT, BigInt(currentPodToStake)] });
+        if (!isApproved) {
+          window.showTxLoader("Collection Approval", "Approve the Vault to securely handle your Pods.");
+          const txHashApprove = await writeContract(config, { address: NFT_CONTRACT, abi: nftAbi, functionName: 'setApprovalForAll', args: [VAULT_CONTRACT, true] });
           await waitForTransactionReceipt(config, { hash: txHashApprove });
+          await new Promise(resolve => setTimeout(resolve, 3000));
         }
 
         window.showTxLoader("Locking Asset", "Confirm the staking transaction.");
         const enumIndex = durationToEnum[selectedLockDuration]; 
         const txHashLock = await writeContract(config, { address: VAULT_CONTRACT, abi: vaultAbi, functionName: 'lock', args: [BigInt(currentPodToStake), enumIndex] });
-        
-        document.getElementById('tx-loader-msg').innerText = "Waiting for Ethereum Network Confirmation...";
         await waitForTransactionReceipt(config, { hash: txHashLock });
         
         window.hideTxLoader();
@@ -399,7 +461,7 @@ if (confirmStakeBtn) {
 
     } catch (error) {
       window.hideTxLoader();
-      window.showToast("Transaction Failed or Rejected by user.", "error");
+      window.showToast(error.message || "Transaction Failed.", "error");
     } finally {
       if(document.getElementById('confirm-stake-btn')) {
         document.getElementById('confirm-stake-btn').innerHTML = "Confirm Stake 🌊";
@@ -409,12 +471,34 @@ if (confirmStakeBtn) {
   });
 }
 
+window.unstakeSoft = async (id) => {
+  try {
+    window.showTxLoader("Removing Soft Stake", "Updating database configuration...");
+    
+    const response = await fetch("/api/staking", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ walletAddress: userAddress, tokenId: id })
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to remove soft stake.");
+
+    window.hideTxLoader();
+    window.showToast(`Soft stake cancelled for Pod #${id}!`, "success");
+    
+    realFleet = [];
+    fetchRealFleet(); 
+  } catch(err) {
+    window.hideTxLoader();
+    window.showToast(err.message || "Could not complete operation.", "error");
+  }
+}
+
 window.unstakeLocked = async (id) => {
   try {
     window.showTxLoader("Unstaking Pod", "Please confirm the withdrawal transaction.");
     const txHashUnlock = await writeContract(config, { address: VAULT_CONTRACT, abi: vaultAbi, functionName: 'unlock', args: [BigInt(id)] });
-    
-    document.getElementById('tx-loader-msg').innerText = "Waiting for Ethereum Network Confirmation...";
     await waitForTransactionReceipt(config, { hash: txHashUnlock });
     
     window.hideTxLoader();

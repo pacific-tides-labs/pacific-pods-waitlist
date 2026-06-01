@@ -1,7 +1,7 @@
 import { IUser } from "../types/user";
-import { UserRepository } from "../repositories/auth.repository";
-import { JWT } from "../utils/jwt.util";
-import { generateReferral } from "../utils/referral.util";
+import { UserRepository } from "../repositories/auth.repository.js";
+import { JWT } from "../utils/jwt.util.js";
+import { generateReferral } from "../utils/referral.util.js";
 
 // Define a standard return type for the service
 export type ServiceResponse = {

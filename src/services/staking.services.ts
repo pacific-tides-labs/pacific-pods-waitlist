@@ -1,5 +1,5 @@
-import { StakingRepository } from "../repositories/staking.repository";
-import { IStaking } from "../types/staking";
+import { StakingRepository } from "../repositories/staking.repository.js";
+import { IStaking } from "../types/staking.js";
 
 export type ServiceResponse = {
     status: number;

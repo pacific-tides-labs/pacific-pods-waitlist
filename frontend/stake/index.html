@@ -423,7 +423,13 @@ let currentPodToStake = null;
 let realFleet = [];
 let isFetchingFleet = false; 
 
-// 🔥 Bare minimum CSS for the ratio, grid, and the help button
+// 🔥 Import Google Material Icons
+const materialIcons = document.createElement('link');
+materialIcons.rel = 'stylesheet';
+materialIcons.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0';
+document.head.appendChild(materialIcons);
+
+// Bare minimum CSS for the ratio, grid, and the help button
 const style = document.createElement('style');
 style.innerHTML = `
   #nft-container {
@@ -433,6 +439,10 @@ style.innerHTML = `
   }
   .nft-card {
     aspect-ratio: 0.85 / 1;
+  }
+  .chunky-toast {
+    display: flex;
+    align-items: center;
   }
   /* Floating Help Button */
   #help-fab {
@@ -485,10 +495,13 @@ window.showToast = (message, type = "info") => {
   if(!hub) return;
   const toast = document.createElement('div');
   toast.className = `chunky-toast ${type}`;
-  let icon = "ℹ️";
-  if (type === "success") icon = "✅";
-  if (type === "error") icon = "🚨";
-  toast.innerHTML = `<span style="font-size: 1.5rem;">${icon}</span> <span>${message}</span>`;
+  
+  let icon = "info";
+  let color = "#00b4d8";
+  if (type === "success") { icon = "check_circle"; color = "#4ade80"; }
+  if (type === "error") { icon = "error"; color = "#e63946"; }
+  
+  toast.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.5rem; color: ${color}; margin-right: 8px;">${icon}</span> <span>${message}</span>`;
   hub.appendChild(toast);
   setTimeout(() => { toast.style.opacity = "0"; setTimeout(() => toast.remove(), 300); }, 4000);
 }
@@ -812,10 +825,10 @@ function renderFleet() {
     let actionHTML = '';
     let statusYieldText = '';
 
-    // 🔥 "Ready to Stake" is now cleanly centered and dark green, all card formats line up perfectly.
+    // 🔥 Both the text structures and the button styles are identical now. Button margins removed so they align.
     if (nft.state === 'unstaked') {
       statusYieldText = `<span style="font-weight: 600; color: darkgreen; display: block; text-align: center;">Ready to Stake</span><span id="est-yield-${nft.id}" style="font-size:0.75rem; color:#888; display: block; text-align: center;">Est. - $POD/day</span>`;
-      actionHTML = `<button class="action-btn" onclick="openStakeModal(${nft.id})">Stake Pod 🌊</button>`;
+      actionHTML = `<button class="action-btn" onclick="openStakeModal(${nft.id})">Stake Pod 🐬</button>`;
     } else {
       let mult = 1.0;
       if (nft.duration === 180) mult = 2.5;
@@ -824,18 +837,18 @@ function renderFleet() {
 
       if (nft.state === 'soft') {
         const softYield = ((stats.base * mult) / 10).toFixed(1);
-        statusYieldText = `<span style="font-weight: 600; color:#00b4d8;">Time remaining: <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span><br><span id="est-yield-${nft.id}" style="font-size:0.75rem; color:#888;">Est. ${softYield} $POD/day</span>`;
-        actionHTML = `<button class="action-btn style-withdraw" style="margin-top:10px; width: 100%; font-size:0.9rem; background:#fffdfa; color:#e63946; border-color:#e63946; box-shadow: 0 4px 0px #e63946;" onclick="unstakeSoft(${nft.id})">Unstake Soft</button>`;
+        statusYieldText = `<span style="font-weight: 600; color:#00b4d8; display: block; text-align: center;">Time left: <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span><span id="est-yield-${nft.id}" style="font-size:0.75rem; color:#888; display: block; text-align: center;">Est. ${softYield} $POD/day</span>`;
+        actionHTML = `<button class="action-btn style-withdraw" style="width: 100%; font-size:0.9rem; background:#fffdfa; color:#e63946; border-color:#e63946; box-shadow: 0 4px 0px #e63946;" onclick="unstakeSoft(${nft.id})">Unstake Soft</button>`;
       } else if (nft.state === 'locked') {
         const lockedYield = (stats.base * mult).toFixed(1);
-        statusYieldText = `<span style="font-weight: 600; color:#cc7a00;">Time remaining: <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span><br><span id="est-yield-${nft.id}" style="font-size:0.75rem; color:#888;">Est. ${lockedYield} $POD/day</span>`;
-        actionHTML = `<button class="action-btn style-withdraw" style="margin-top:10px; width: 100%; font-size:0.9rem; background:#fffdfa; color:#cc7a00; border-color:#cc7a00; box-shadow: 0 4px 0px #cc7a00;" onclick="unstakeLocked(${nft.id})">Withdraw</button>`;
+        statusYieldText = `<span style="font-weight: 600; color:#cc7a00; display: block; text-align: center;">Time left: <span class="countdown" data-unlock="${nft.unlockTimestamp}">Calc...</span></span><span id="est-yield-${nft.id}" style="font-size:0.75rem; color:#888; display: block; text-align: center;">Est. ${lockedYield} $POD/day</span>`;
+        actionHTML = `<button class="action-btn style-withdraw" style="width: 100%; font-size:0.9rem; background:#fffdfa; color:#cc7a00; border-color:#cc7a00; box-shadow: 0 4px 0px #cc7a00;" onclick="unstakeLocked(${nft.id})">Withdraw</button>`;
       }
     }
 
     card.innerHTML = `
       <div id="img-${nft.id}" class="nft-image ${nft.isLoadingMeta ? 'skeleton-bg' : ''}" style="background-image: url('${nft.image || ''}'); background-size: cover; background-position: center;">
-        <span class="nft-rarity-badge" id="rarity-${nft.id}">#${nft.id} | ${stats.rarity}</span>
+        <span class="nft-rarity-badge" id="rarity-${nft.id}">#${nft.id} | ${nft.isLoadingMeta ? 'Loading' : stats.rarity}</span>
       </div>
       <span id="name-${nft.id}" class="nft-name ${nft.isLoadingMeta ? 'skeleton-text' : ''}">${nft.name}</span>
       <span class="nft-yield">${statusYieldText}</span>
@@ -1002,7 +1015,7 @@ if (confirmStakeBtn) {
       window.showToast(error.message || "Transaction Failed.", "error");
     } finally {
       if(document.getElementById('confirm-stake-btn')) {
-        document.getElementById('confirm-stake-btn').innerHTML = "Confirm Stake 🌊";
+        document.getElementById('confirm-stake-btn').innerHTML = "Confirm Stake 🐬";
         document.getElementById('confirm-stake-btn').disabled = false;
       }
     }

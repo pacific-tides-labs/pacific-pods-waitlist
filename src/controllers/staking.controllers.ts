@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { StakingService } from "../services/staking.services";
-import { stakingUISchema } from "../validations/staking.zod";
-import { IStaking } from "../types/staking";
+import { StakingService } from "../services/staking.services.js";
+import { stakingUISchema } from "../validations/staking.zod.js";
+import { IStaking } from "../types/staking.js";
 
 export class StakingController {
     

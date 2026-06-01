@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { StakingController } from "../controllers/staking.controllers.js";
+import { StakingController } from "../controllers/staking.controllers";
 
 const router = Router();
 
@@ -11,5 +11,7 @@ router.post("/", StakingController.staking);
 
 // 3. DELETE: Unstakes the token and banks the points
 router.delete("/", StakingController.unstake);
+
+router.get("/raw", StakingController.getFullUserDocuments);
 
 export default router;

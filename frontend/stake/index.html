@@ -4,14 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PacificPods | Staking</title>
+  <link rel="shortcut icon" href="https://pacificpods.xyz/static/logo.jpeg" type="image/x-icon">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css"> 
+  <link rel="stylesheet" href="http://localhost:4000/stake/style.css"> 
 </head>
 <body>
   <div class="marquee-container">
     <div class="marquee-content">
-      <span>🚀 PODS STAKING IS NOW LIVE 🌊 LOCK YOUR FLEET TO MULTIPLY YIELD 🚀 EARN $TIDES DAILY 🌊 NO UNSTAKING PENALTIES ON SOFT STAKE 🚀</span>
-      <span>🚀 PODS STAKING IS NOW LIVE 🌊 LOCK YOUR FLEET TO MULTIPLY YIELD 🚀 EARN $TIDES DAILY 🌊 NO UNSTAKING PENALTIES ON SOFT STAKE 🚀</span>
+      <span>🚀 PODS STAKING IS NOW LIVE 🌊 LOCK YOUR FLEET TO MULTIPLY YIELD 🚀 EARN $POD POINTS DAILY 🌊 LOCKED AND SOFT STAKE 🚀</span>
+      <span>🚀 PODS STAKING IS NOW LIVE 🌊 LOCK YOUR FLEET TO MULTIPLY YIELD 🚀 EARN $POD POINTS DAILY 🌊 LOCKED AND SOFT STAKE 🚀</span>
+      <span>🚀 PODS STAKING IS NOW LIVE 🌊 LOCK YOUR FLEET TO MULTIPLY YIELD 🚀 EARN $POD POINTS DAILY 🌊 LOCKED AND SOFT STAKE 🚀</span>
     </div>
   </div>
 
@@ -25,8 +27,8 @@
 
   <main class="dapp-container container">
     <header style="margin-top: 40px;">
-      <h1>🐬 Staking Depths</h1>
-      <p>Lock your Pod. Earn $TIDES.</p>
+      <h1>🐬 POD NFT STAKING</h1>
+      <p>Lock your Pod. Earn $POD Points.</p>
     </header>
 
     <div id="flow-login" class="card pulse-glow" style="margin-top: 40px;">
@@ -38,11 +40,11 @@
     <div id="dashboard-view" class="hidden">
       <div class="stats-grid">
         <div class="stat-box">
-          <span class="stat-label">Staked Fleet</span>
+          <span class="stat-label">Staked NFT's</span>
           <span class="stat-value" id="val-staked">0</span>
         </div>
         <div class="stat-box" style="border-color: #ff9f1c; box-shadow: 0 4px 0px #cc7a00; background: #fffdfa;">
-          <span class="stat-label" style="color: #cc7a00;">Pending $TIDES</span>
+          <span class="stat-label" style="color: #cc7a00;">EARNED $POD Points</span>
           <span class="stat-value pulse-text" id="val-tides">0.00</span>
         </div>
         <div class="stat-box">
@@ -53,7 +55,7 @@
 
       <div class="card" style="margin-top: 30px;">
         <div class="fleet-header">
-          <h2 style="margin: 0; border: none;">Your Fleet</h2>
+          <h2 style="margin: 0; border: none;">Your NFT's</h2>
         </div>
         <div class="nft-grid" id="nft-container"></div>
       </div>
@@ -105,6 +107,6 @@
   </div>
   <div id="toast-hub"></div>
 
-  <script type="module" src="./script.js"></script>
+  <script type="module" src="http://localhost:4000/stake/script.js"></script>
 </body>
 </html>

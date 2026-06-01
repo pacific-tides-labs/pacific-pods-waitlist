@@ -25,7 +25,7 @@ export class StakingRepository {
         return await StakingModel.create(stakeData);
     }
 
-    // Used by both the Webhook and the UI to safely close out a stake and save the points
+    // Safely close out a stake and save the points
     static async removeStakeAndBankPoints(tokenId: number, pointsEarned: number): Promise<void> {
         await StakingModel.updateOne(
             { tokenId: tokenId, status: "ACTIVE" },
